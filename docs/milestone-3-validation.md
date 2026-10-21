@@ -93,8 +93,8 @@ The voice tests still use Elements' panel values (`tests/host.cpp`), so `match_e
 
 ## To do
 
-1. Committed and pushed as `b15b3dc`; the `v0.2.0` tag is not created yet.
-2. Done: Peepo pins `b15b3dc` (uncommitted in Peepo). If a `v0.2.0` tag lands on another commit, move the pin there.
+1. Done: `v0.2.1` tagged at `675ac8e` and pushed (`v0.2.0`, `b15b3dc`, was not tagged).
+2. Done: Peepo pins `675ac8e` (`v0.2.1`).
 3. On the Pi (Peepo's roadmap, Chamber section): the build step, `make test-timing` (Strings, then Ominous), `tools/pi/measure-effect.py` alone and in a typical patch for 30 minutes, with and without the Ominous voice; JACK xruns, DSP load and RSS into Peepo's `docs/evidence/`. Unhide `ominous` in the overlay only if it fits.
 4. Pi catalogue exported; `docs/33-module-list.md` regenerated with `tools/document-catalogue.py`.
-5. Done: listened to with a guitar on the Pi; defaults tuned in `v0.2.1` (above). Tag `v0.2.1` and move Peepo's pin to it; then install it on the Pi.
+5. Done: listened to with a guitar on the Pi; defaults tuned in `v0.2.1` (above), built from the tag on the Pi and installed, with the Pi's overlay and catalogue updated (Chamber's entry the only change). The engine picks it up at its next restart.
