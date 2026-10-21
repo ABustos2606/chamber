@@ -2,7 +2,7 @@
 
 Chamber is a modal synthesis voice for Peepo, a pedal built on a Raspberry Pi 5 running the Ingen modular host. Bow, blow and strike exciters drive a resonator, followed by a reverb; external audio, such as a guitar, can excite the resonator in place of the built-in exciters. It is an LV2 plugin made from the open-source code of Elements, a eurorack module by Emilie Gillet. It must also work as a normal LV2 plugin in Carla or Ardour.
 
-**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 built and tested (21 October 2026), `lv2lint` and the `v0.0.1` tag outstanding; see `docs/milestone-0-validation.md`.
+**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 done, `v0.0.1` (21 October 2026); see `docs/milestone-0-validation.md`. Milestone 1 in progress.
 
 ## Why Elements
 
@@ -104,7 +104,7 @@ Settled with the user on 20 October 2026:
 
 ## Milestones
 
-- [ ] Milestone 0: vendored code, Makefile, LV2 glue and `.ttl` with the full port list. Chamber plays a struck note on Play. Loads in jalv and in Ingen under WSL.
+- [x] Milestone 0: vendored code, Makefile, LV2 glue and `.ttl` with the full port list. Chamber plays a struck note on Play. Loads in jalv and in Ingen under WSL.
 - [ ] Milestone 1: the resampler, every control and CV input, the three models. Renders match `elements_test`. Pi CPU and xrun check.
 - [ ] Milestone 2: guitar into Blow in and Strike in, levels, the Ominous voice if kept, Dry/wet if wanted.
 - [ ] Milestone 3: Peepo integration: overlay entry, pinned build, listening with guitar on the Pi. Tag `v0.1.0`.

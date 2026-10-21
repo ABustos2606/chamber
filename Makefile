@@ -33,9 +33,11 @@ LV2_CFLAGS = $(shell $(PKG_CONFIG) --cflags lv2)
 # TEST selects stmlib's portable C++ instead of Cortex-M4 assembly, as
 # upstream's own desktop test build does. -fno-fast-math comes after OPT: the
 # non-finite guards need IEEE arithmetic even if a host build passes
-# -ffast-math in OPT.
+# -ffast-math in OPT. initial-exec puts stmlib::Random's thread_local state
+# (third_party/eurorack/README.md) in the static TLS block set up at dlopen,
+# so the first run() on a new host thread does not allocate it.
 BASE_FLAGS = $(CPPFLAGS) $(CXXFLAGS) $(OPT) -std=c++17 -fPIC -fvisibility=hidden -DTEST \
-	-fno-fast-math -fno-math-errno -fno-trapping-math $(SAN_FLAGS)
+	-ftls-model=initial-exec -fno-fast-math -fno-math-errno -fno-trapping-math $(SAN_FLAGS)
 COMPILE_FLAGS = $(BASE_FLAGS) $(LV2_CFLAGS) -isystem $(VENDOR) -Wall -Wextra
 # Vendored code is kept as upstream wrote it; its warnings are not ours.
 VENDOR_FLAGS = $(BASE_FLAGS) -I$(VENDOR) -w

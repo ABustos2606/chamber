@@ -157,7 +157,7 @@ Typical patch (input -> Chamber -> amp -> output, plus a Mist) for 30 minutes wi
 
 ## 7. Changes to vendored files
 
-One, found in milestone 0: `stmlib::Random` keeps its state in a static, written every sample by the exciter and the string model. Two instances on two Ingen threads would race on it. `tools/patches/stmlib-random-thread-local.patch` makes it `thread_local`, and the glue saves and restores each instance's state around `Part::Process`, so each instance has its own repeatable sequence; the numbers drawn are unchanged. `tools/vendor.sh` applies the patch; `third_party/eurorack/README.md` lists it. The `instances` test and ThreadSanitizer check it.
+One, found in milestone 0: `stmlib::Random` keeps its state in a static, written every sample by the exciter and the string model. Two instances on two Ingen threads would race on it. `tools/patches/stmlib-random-thread-local.patch` makes it `thread_local`, and the glue saves and restores each instance's state around `Part::Process`, so each instance has its own repeatable sequence; the numbers drawn are unchanged. It is built with `-ftls-model=initial-exec`, because a `dlopen`ed library's ordinary `thread_local` is allocated with `malloc` on each thread's first use, inside `run()`. `tools/vendor.sh` applies the patch; `third_party/eurorack/README.md` lists it. The `instances` test and ThreadSanitizer check it.
 
 The 48 kHz option would change `dsp/dsp.h` and regenerate `resources.cc`, listed the same way.
 

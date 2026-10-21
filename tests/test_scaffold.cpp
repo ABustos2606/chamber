@@ -3,11 +3,36 @@
 #include "host.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <limits>
 #include <thread>
+
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+#define CHAMBER_COUNT_ALLOCATIONS 0
+#else
+#define CHAMBER_COUNT_ALLOCATIONS 1
+// Counts allocations made while `counting` is set on the calling thread
+// (sanitizers replace malloc themselves, so not under SAN=1 or SAN=thread).
+namespace {
+thread_local bool counting = false;
+std::atomic<int> allocations{0};
+} // namespace
+extern "C" void* __libc_malloc(size_t);
+extern "C" void* __libc_calloc(size_t, size_t);
+extern "C" void* malloc(size_t size)
+{
+    if (counting) { allocations.fetch_add(1); }
+    return __libc_malloc(size);
+}
+extern "C" void* calloc(size_t count, size_t size)
+{
+    if (counting) { allocations.fetch_add(1); }
+    return __libc_calloc(count, size);
+}
+#endif
 
 using chamber::Port;
 using test::Instance;
@@ -166,6 +191,28 @@ void test_models_and_inputs(const LV2_Descriptor* d)
     std::cout << "PASS models: three models and the Ominous voice sound and differ; non-finite input stays finite\n";
 }
 
+void test_allocation(const LV2_Descriptor* d)
+{
+#if CHAMBER_COUNT_ALLOCATIONS
+    // run() on a thread that has never run Chamber: its first touch of the
+    // thread_local Random state must not allocate (initial-exec TLS).
+    Instance instance(d, 48000, 128);
+    blowing_string(instance);
+    std::thread worker([&] {
+        counting = true;
+        instance.render(48000, performance);
+        counting = false;
+    });
+    worker.join();
+    // render() itself allocates once for its result vector; nothing else may.
+    require(allocations.load() <= 1, "run() allocates: " + std::to_string(allocations.load()));
+    std::cout << "PASS allocation: no allocation in run(), on a new thread\n";
+#else
+    (void)d;
+    std::cout << "SKIP allocation: sanitizer build\n";
+#endif
+}
+
 void test_timing(const LV2_Descriptor* d)
 {
     // Worst case: 64 modes, the Strings model, full reverb, every exciter on.
@@ -207,6 +254,7 @@ int main(int argc, char** argv)
         test_slicing(library.descriptor);
         test_instances(library.descriptor);
         test_models_and_inputs(library.descriptor);
+        test_allocation(library.descriptor);
     } catch (const std::exception& e) {
         std::cerr << "FAIL scaffold: " << e.what() << '\n';
         return 1;

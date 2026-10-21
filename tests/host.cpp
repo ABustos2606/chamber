@@ -78,7 +78,9 @@ void Instance::period()
     }
     if (measure) { run_times.push_back(duration); }
     for (uint32_t p = 0; p < chamber::kPortCount; ++p) {
-        require(buffers_[p][block] == kGuard, "write past the end of a period, port " + std::to_string(p));
+        if (buffers_[p][block] != kGuard) {
+            throw std::runtime_error("write past the end of a period, port " + std::to_string(p));
+        }
     }
 }
 
