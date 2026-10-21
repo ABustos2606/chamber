@@ -58,10 +58,24 @@ The pages, as Peepo shows them:
 
 Not done on the PC: `config/catalogue/wsl-debian.json` was not re-exported. This WSL environment no longer matches it (about 110 of its plugins are not installed here, and many entries differ), so a fresh export would rewrite far more than Chamber. Run `15-compat.sh` after a full `14-more-plugins.sh`, as for any new plugin.
 
+## On the Pi, 21 October 2026
+
+Chamber `b15b3dc` (Milestone 3, not tagged) on the Pi 5 (`patchbox`, Debian 12, kernel 6.6.74), built as Peepo's build step does: cloned from GitHub into `/opt/peepo/src/more-plugins/chamber`, `make OPT="-O2 -mcpu=cortex-a76"` (4 s with `-j3`, no warnings), installed into `/opt/peepo/lib/lv2`. Peepo's pin moved to `b15b3dc`.
+
+| Check | Result |
+| --- | --- |
+| `make test` on the Pi | PASS, every test, natively on arm64 |
+| `make test-timing`, three runs, worst-case settings, 48 kHz, 128 frames (2,667 us) | Strings: mean 77 to 80 us (2.9 to 3.0% of a core), 99.9% 303 to 455 us. Ominous: mean 132 to 140 us (4.9 to 5.3%), 99.9% 418 to 556 us. One run of each had a single period near or over 2.67 ms (2.8 and 3.4 ms). The test is an ordinary process beside the running instrument, not a JACK client at real-time priority, so those spikes say nothing yet about xruns |
+| Catalogue | The Pi's overlay and inventory were Peepo's `66e4330`; they now include exactly Chamber's lines from `588d6f2`. Re-exported with `tools/pi/export-catalogue.sh`: 335 -> 336 modules, Chamber added, nothing else changed. Chamber offered, category Resonator. Backups in `/opt/peepo/share/peepo/pre-chamber-20261021/` |
+| Engine and interface restarted (`peepo-engine`, `peepo-route`, `peepo-ui`; JACK kept running) | All active; the saved startup patch reloaded clean (`dirty=0`); guitar and speakers wired back; the installed catalogue and overlay load (`peepo_effect_live show`: PASS) |
+| xruns | Before any of this, with only the Clouds patch: 489 in 70 minutes (4 to 12 a minute); the Pi reports past under-voltage and throttling (`get_throttled` 0x50000). 54 in the minute of the build and timing test. After the restart, 2 to 4 a minute. Chamber is in no patch yet |
+
+Not done on the Pi: Chamber in a patch with guitar, `measure-effect.py`, a 30-minute xrun run with and without the Ominous voice, listening. The mean costs (3% and 5% of a core) leave room; whether the Ominous voice is unhidden waits for the xrun run, on a Pi without the under-voltage.
+
 ## To do
 
-1. Commit and tag `v0.2.0` in Chamber; push.
-2. In Peepo, replace `05d9eb0` in `14-more-plugins.sh` with the `v0.2.0` commit.
+1. Committed and pushed as `b15b3dc`; the `v0.2.0` tag is not created yet.
+2. Done: Peepo pins `b15b3dc` (uncommitted in Peepo). If a `v0.2.0` tag lands on another commit, move the pin there.
 3. On the Pi (Peepo's roadmap, Chamber section): the build step, `make test-timing` (Strings, then Ominous), `tools/pi/measure-effect.py` alone and in a typical patch for 30 minutes, with and without the Ominous voice; JACK xruns, DSP load and RSS into Peepo's `docs/evidence/`. Unhide `ominous` in the overlay only if it fits.
 4. Pi catalogue exported; `docs/33-module-list.md` regenerated with `tools/document-catalogue.py`.
 5. Listening with a guitar on the Pi: Damping (0.25 rings briefly; 0.7 rings on), Strike in level, then `v0.2.x` tags of tuned defaults.
