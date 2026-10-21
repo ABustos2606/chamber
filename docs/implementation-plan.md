@@ -80,14 +80,25 @@ Port **symbols and URIs are permanent** once a patch has been saved with them. A
 | 10 `*_amount` | control -1 to 1 | Attenuverters for the 10 CV inputs that have one on the hardware |
 | `voct_cv`, `fm_cv`, `strength_cv`, `gate_cv` | CV in | |
 | `bow_timbre_cv`, `blow_meta_cv`, `blow_timbre_cv`, `strike_meta_cv`, `strike_timbre_cv`, `geometry_cv`, `brightness_cv`, `damping_cv`, `position_cv`, `space_cv` | CV in | |
+| `latency` | control out | Frames of latency (`lv2:reportsLatency`), section 4.2 |
 
-Indices are assigned in milestone 0 in this order. Peepo's overlay groups them into pages.
+Indices were assigned in milestone 0 in this order, 0 to 52; `src/ports.hpp` is the record and `tests/ttl_check.py` holds them fixed. Peepo's overlay groups them into pages.
+
+Settled in milestone 0 (21 October 2026):
+
+- `coarse` is an integer, 0 to 60 semitones, default 30: the hardware's 5-octave quantized knob (`LAW_QUANTIZED_NOTE`). The note is `coarse + 19 + fine + 12 * V/oct volts`, as `CvScaler::Read`.
+- Bipolar controls (`fine`, `fm_amount`, the `*_amount` attenuverters) are knob positions, -1 to 1; the hardware's laws (`x * |x| * 3.3`, quartic for FM) are applied inside, so they feel like the panel.
+- `blow_meta` and `strike_meta` are named "Blow flow" and "Strike mallet", the panel's words for them.
+- Input levels are -24 to +24 dB, default 0 (**tune** with a guitar in milestone 2).
+- Unipolar defaults are `Part::Init`'s values (contour 1, strike 0.8, geometry 0.2, damping 0.25, position 0.3, space 0.5); **tune** in milestone 3.
 
 ## 4. The glue
 
 ### 4.1 Instantiate
 
 Allocate the reverb buffer (32,768 `uint16_t`, as `elements.cc`), call `Part::Init(reverb_buffer)` and `Part::Seed`. The hardware seeds from the chip's unique ID (`0x1fff7a10`); Chamber seeds from a fixed value, so renders repeat, set up the resampler for the host rate, allocate scratch buffers from the maximum block length.
+
+`Part` is allocated zeroed: its constructor is empty and `Part::Init` does not set `panic_` or `easter_egg_`, which on the hardware are zero because `Part` is a global. `activate()` zeroes and rebuilds it before `Init`, because `Init` alone does not clear all voice state (found in milestone 0: a re-activated instance did not repeat its first render).
 
 ### 4.2 Rate and blocks
 
@@ -98,6 +109,12 @@ Resampling was chosen on 20 October 2026. The alternative in the spec (tables re
 ### 4.3 Controls
 
 `controls.cpp` copies `cv_scaler.cc`'s `Read`: each pot plus its attenuverted CV into `Patch`; pitch from Coarse, Fine, FM and V/oct; `PerformanceState.gate` from `play` OR `gate_cv`; `strength` is the control plus `strength_cv`, clamped, because a plugin can't tell an unpatched input from 0 V. Calibration offsets from the hardware are dropped. CV scale: 1.0 = 5 V; V/oct is `cv * 60` semitones.
+
+It runs once per 16-frame block, as `Read` runs once per codec block, with the same smoothing (0.01 per block on every pot, the per-parameter `BIND` coefficients, the V/oct slew, the gate read two blocks late). Two differences: every knob is read on every block (the hardware scans one pot per block), and the first block after `activate()` starts the filters at the knob values instead of at zero, so a loaded patch does not sweep. CVs are sampled at the frame that completes the block.
+
+- **CV gain, tune.** Firmware does not state the attenuverted inputs' volts-to-ADC gain. Chamber uses 1 V = 1/19.8 of the knob range, from the 0 V offset constant in `CvScaler::Init` (`10 V * 20k / 120k / 3.3 V`). With an amount of 1 (x 3.3), a CV of 1.0 (5 V) moves a parameter by 0.83. Check by ear in milestone 1.
+- **Gate threshold:** 0.4 (2 V), as Poly's Rings port; Peepo's gates are 0 or 1.
+- **Input conditioning** copies `elements.cc` `FillBuffer`: each input is clipped to the codec's full scale, then its level follower and noise gate apply (at 32 kHz once resampling is in).
 
 ### 4.4 Model and Ominous voice
 
@@ -116,6 +133,7 @@ Resampling was chosen on 20 October 2026. The alternative in the spec (tables re
 | Test | Check |
 | --- | --- |
 | `ttl_check` | every port matches `ports.hpp`; names ASCII <= 16 characters |
+| `scaffold` | descriptor, rates, unconnected ports, Play and Gate strike a note, instances alone/interleaved/threaded keep their own sequence, `activate` restarts, models differ, non-finite input |
 | `slicing` | same output for random host slice lengths |
 | `match_elements` | at a 32 kHz host rate (no resampling), output matches the vendored `Part` driven directly, bit for bit |
 | `resampler` | 48 kHz: a sine sweep keeps its level within **tune** dB to 14 kHz; aliasing below **tune** dB; latency equals the reported value |
@@ -127,7 +145,7 @@ Resampling was chosen on 20 October 2026. The alternative in the spec (tables re
 
 ### 6.2 Desktop hosts
 
-`lv2lint`, `jalv`, Carla. `tools/render` with a guitar DI for listening.
+`lv2lint`, `jalv`, Carla. `tools/render` with a guitar DI for listening. `make test-hosts` (`tests/host_smoke.py`, from Discipline) runs jalv and Ingen on a private dummy JACK server.
 
 ### 6.3 Ingen under WSL
 
@@ -139,7 +157,9 @@ Typical patch (input -> Chamber -> amp -> output, plus a Mist) for 30 minutes wi
 
 ## 7. Changes to vendored files
 
-None planned for the resampling option. The 48 kHz option changes `dsp/dsp.h` and regenerates `resources.cc`; both would be listed in `third_party/eurorack/README.md`.
+One, found in milestone 0: `stmlib::Random` keeps its state in a static, written every sample by the exciter and the string model. Two instances on two Ingen threads would race on it. `tools/patches/stmlib-random-thread-local.patch` makes it `thread_local`, and the glue saves and restores each instance's state around `Part::Process`, so each instance has its own repeatable sequence; the numbers drawn are unchanged. `tools/vendor.sh` applies the patch; `third_party/eurorack/README.md` lists it. The `instances` test and ThreadSanitizer check it.
+
+The 48 kHz option would change `dsp/dsp.h` and regenerate `resources.cc`, listed the same way.
 
 ## 8. Milestones
 

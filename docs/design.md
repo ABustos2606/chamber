@@ -2,7 +2,7 @@
 
 Chamber is a modal synthesis voice for Peepo, a pedal built on a Raspberry Pi 5 running the Ingen modular host. Bow, blow and strike exciters drive a resonator, followed by a reverb; external audio, such as a guitar, can excite the resonator in place of the built-in exciters. It is an LV2 plugin made from the open-source code of Elements, a eurorack module by Emilie Gillet. It must also work as a normal LV2 plugin in Carla or Ardour.
 
-**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** spec draft, nothing built.
+**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 built and tested (21 October 2026), `lv2lint` and the `v0.0.1` tag outstanding; see `docs/milestone-0-validation.md`.
 
 ## Why Elements
 

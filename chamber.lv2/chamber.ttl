@@ -1,0 +1,499 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Alejandro Bustos
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix units: <http://lv2plug.in/ns/extensions/units#> .
+
+<https://github.com/ABustos2606/chamber#chamber>
+    a lv2:Plugin, lv2:InstrumentPlugin ;
+    doap:name "Chamber" ;
+    doap:license <https://spdx.org/licenses/MIT> ;
+    doap:maintainer [ foaf:name "Alejandro Bustos" ; foaf:homepage <https://github.com/ABustos2606> ] ;
+    doap:homepage <https://github.com/ABustos2606/chamber> ;
+    doap:description "Made from the open-source code of Elements, a eurorack module by Emilie Gillet (MIT license)." ;
+    rdfs:comment "Modal synthesis voice. Bow, blow and strike exciters drive a resonator, followed by a reverb. Play or a gate starts a note. Audio at Blow in or Strike in, such as a guitar, makes the resonator ring." ;
+    lv2:minorVersion 0 ;
+    lv2:microVersion 1 ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    lv2:port
+    [
+        a lv2:InputPort, lv2:AudioPort ;
+        lv2:index 0 ;
+        lv2:symbol "blow_in" ;
+        lv2:name "Blow in"
+    ],
+    [
+        a lv2:InputPort, lv2:AudioPort ;
+        lv2:index 1 ;
+        lv2:symbol "strike_in" ;
+        lv2:name "Strike in"
+    ],
+    [
+        a lv2:OutputPort, lv2:AudioPort ;
+        lv2:index 2 ;
+        lv2:symbol "out_l" ;
+        lv2:name "Out L"
+    ],
+    [
+        a lv2:OutputPort, lv2:AudioPort ;
+        lv2:index 3 ;
+        lv2:symbol "out_r" ;
+        lv2:name "Out R"
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:symbol "contour" ;
+        lv2:name "Contour" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 1.0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:symbol "bow_level" ;
+        lv2:name "Bow level" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:symbol "bow_timbre" ;
+        lv2:name "Bow timbre" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:symbol "blow_level" ;
+        lv2:name "Blow level" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:symbol "blow_meta" ;
+        lv2:name "Blow flow" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:symbol "blow_timbre" ;
+        lv2:name "Blow timbre" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:symbol "strike_level" ;
+        lv2:name "Strike level" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.8
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 11 ;
+        lv2:symbol "strike_meta" ;
+        lv2:name "Strike mallet" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 12 ;
+        lv2:symbol "strike_timbre" ;
+        lv2:name "Strike timbre" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 13 ;
+        lv2:symbol "geometry" ;
+        lv2:name "Geometry" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.2
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 14 ;
+        lv2:symbol "brightness" ;
+        lv2:name "Brightness" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 15 ;
+        lv2:symbol "damping" ;
+        lv2:name "Damping" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.25
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:symbol "position" ;
+        lv2:name "Position" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.3
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:symbol "model" ;
+        lv2:name "Model" ;
+        lv2:minimum 0 ;
+        lv2:maximum 2 ;
+        lv2:default 0 ;
+        lv2:portProperty lv2:integer, lv2:enumeration ;
+        lv2:scalePoint [ rdfs:label "Modal" ; rdf:value 0 ] ,
+            [ rdfs:label "String" ; rdf:value 1 ] ,
+            [ rdfs:label "Strings" ; rdf:value 2 ]
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:symbol "coarse" ;
+        lv2:name "Coarse" ;
+        lv2:minimum 0 ;
+        lv2:maximum 60 ;
+        lv2:default 30 ;
+        lv2:portProperty lv2:integer ;
+        units:unit units:semitone12TET
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:symbol "fine" ;
+        lv2:name "Fine" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:symbol "fm_amount" ;
+        lv2:name "FM amount" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:symbol "space" ;
+        lv2:name "Space" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:symbol "play" ;
+        lv2:name "Play" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0 ;
+        lv2:portProperty lv2:toggled
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:symbol "strength" ;
+        lv2:name "Strength" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0.5
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 24 ;
+        lv2:symbol "blow_in_level" ;
+        lv2:name "Blow in level" ;
+        lv2:minimum -24 ;
+        lv2:maximum 24 ;
+        lv2:default 0 ;
+        units:unit units:db
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 25 ;
+        lv2:symbol "strike_in_level" ;
+        lv2:name "Strike in level" ;
+        lv2:minimum -24 ;
+        lv2:maximum 24 ;
+        lv2:default 0 ;
+        units:unit units:db
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 26 ;
+        lv2:symbol "ominous" ;
+        lv2:name "Ominous voice" ;
+        lv2:minimum 0 ;
+        lv2:maximum 1 ;
+        lv2:default 0 ;
+        lv2:portProperty lv2:toggled
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 27 ;
+        lv2:symbol "output" ;
+        lv2:name "Output" ;
+        lv2:minimum -24 ;
+        lv2:maximum 12 ;
+        lv2:default 0 ;
+        units:unit units:db
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 28 ;
+        lv2:symbol "bow_timbre_amount" ;
+        lv2:name "Bow timbre amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 29 ;
+        lv2:symbol "blow_meta_amount" ;
+        lv2:name "Blow flow amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 30 ;
+        lv2:symbol "blow_timbre_amount" ;
+        lv2:name "Blow timbre amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 31 ;
+        lv2:symbol "strike_meta_amount" ;
+        lv2:name "Strk mallet amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 32 ;
+        lv2:symbol "strike_timbre_amount" ;
+        lv2:name "Strk timbre amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 33 ;
+        lv2:symbol "geometry_amount" ;
+        lv2:name "Geometry amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 34 ;
+        lv2:symbol "brightness_amount" ;
+        lv2:name "Brightness amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 35 ;
+        lv2:symbol "damping_amount" ;
+        lv2:name "Damping amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 36 ;
+        lv2:symbol "position_amount" ;
+        lv2:name "Position amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 37 ;
+        lv2:symbol "space_amount" ;
+        lv2:name "Space amt" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 38 ;
+        lv2:symbol "voct_cv" ;
+        lv2:name "V/oct" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 39 ;
+        lv2:symbol "fm_cv" ;
+        lv2:name "FM CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 40 ;
+        lv2:symbol "strength_cv" ;
+        lv2:name "Strength CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 41 ;
+        lv2:symbol "gate_cv" ;
+        lv2:name "Gate" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 42 ;
+        lv2:symbol "bow_timbre_cv" ;
+        lv2:name "Bow timbre CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 43 ;
+        lv2:symbol "blow_meta_cv" ;
+        lv2:name "Blow flow CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 44 ;
+        lv2:symbol "blow_timbre_cv" ;
+        lv2:name "Blow timbre CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 45 ;
+        lv2:symbol "strike_meta_cv" ;
+        lv2:name "Strk mallet CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 46 ;
+        lv2:symbol "strike_timbre_cv" ;
+        lv2:name "Strk timbre CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 47 ;
+        lv2:symbol "geometry_cv" ;
+        lv2:name "Geometry CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 48 ;
+        lv2:symbol "brightness_cv" ;
+        lv2:name "Brightness CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 49 ;
+        lv2:symbol "damping_cv" ;
+        lv2:name "Damping CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 50 ;
+        lv2:symbol "position_cv" ;
+        lv2:name "Position CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:InputPort, lv2:CVPort ;
+        lv2:index 51 ;
+        lv2:symbol "space_cv" ;
+        lv2:name "Space CV" ;
+        lv2:minimum -1 ;
+        lv2:maximum 1 ;
+        lv2:default 0
+    ],
+    [
+        a lv2:OutputPort, lv2:ControlPort ;
+        lv2:index 52 ;
+        lv2:symbol "latency" ;
+        lv2:name "Latency" ;
+        lv2:minimum 0 ;
+        lv2:maximum 4096 ;
+        lv2:designation lv2:latency ;
+        lv2:portProperty lv2:reportsLatency, lv2:integer ;
+        units:unit units:frame
+    ] .

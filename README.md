@@ -3,8 +3,11 @@
 An LV2 modal synthesis voice, written for Peepo and other LV2 hosts. MIT
 licensed, Copyright (c) 2026 Alejandro Bustos.
 
-**Status, 20 October 2026: planned.** This repository holds the spec and the
-implementation plan only. Nothing is built yet.
+**Status, 21 October 2026: milestone 0.** The plugin builds, loads in jalv and
+Ingen, and Play or a gate strikes a note. All ports are declared; the voice
+still runs at the host's rate, so it is only in tune at 32 kHz until the
+resampler (milestone 1). See
+[docs/milestone-0-validation.md](docs/milestone-0-validation.md).
 
 Chamber models a resonating body played by bowing, blowing or striking it.
 Three exciters, shaped by one envelope, drive a resonator of up to 64 modes:
@@ -25,8 +28,14 @@ make
 make install PREFIX=/usr/local
 make install LV2DIR=/opt/peepo/lib/lv2     # where Peepo finds plugins
 make OPT="-O2 -mcpu=cortex-a76"            # native Pi build
-make test
+make test                                  # offline tests; needs python3-rdflib
+make test SAN=1                            # the same with ASan and UBSan
+make test-hosts                            # jalv and Ingen; needs jackd, Ingen,
+                                           # python3-jack-client and numpy
 ```
+
+`tools/vendor.sh` refreshes `third_party/eurorack/` from upstream at the pinned
+commits (by hand, with network access); the build never runs it.
 
 The behaviour specification is [docs/design.md](docs/design.md); the build
 and milestone requirements are in
