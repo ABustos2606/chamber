@@ -2,7 +2,7 @@
 
 Chamber is a modal synthesis voice for Peepo, a pedal built on a Raspberry Pi 5 running the Ingen modular host. Bow, blow and strike exciters drive a resonator, followed by a reverb; external audio, such as a guitar, can excite the resonator in place of the built-in exciters. It is an LV2 plugin made from the open-source code of Elements, a eurorack module by Emilie Gillet. It must also work as a normal LV2 plugin in Carla or Ardour.
 
-**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 done, `v0.0.1` (21 October 2026); see `docs/milestone-0-validation.md`. Milestones 1 and 2 in progress: their offline work is done, the Pi checks are not; see `docs/milestone-1-validation.md` and `docs/milestone-2-validation.md`.
+**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 done, `v0.0.1` (21 October 2026); see `docs/milestone-0-validation.md`. Milestones 1 to 3 in progress: their offline and Peepo-side work is done, the Pi checks are not; see `docs/milestone-1-validation.md`, `docs/milestone-2-validation.md` and `docs/milestone-3-validation.md`. Release `v0.2.0` (lv2:minorVersion 2, microVersion 0) is the first Peepo pins.
 
 ## Why Elements
 
@@ -107,6 +107,12 @@ Settled in milestone 2 (21 October 2026):
 - **No Dry/wet** (with the user). Peepo's mixer modules blend the dry guitar.
 - **Model and Ominous changes fade**: 4 ms out, switch, 4 ms in. Elements switches at once, and the voice that was sounding stops dead, which clicks.
 
+Settled in milestone 3 (21 October 2026):
+
+- **`v0.2.0`** is the first release Peepo pins (with the user); `v0.1.0` is skipped.
+- **Chamber is an `lv2:GeneratorPlugin`**, not an `lv2:InstrumentPlugin`: Peepo withholds instruments as "played by MIDI notes", and Chamber has no MIDI input. Its category in Peepo comes from the overlay (Resonator).
+- **The Ominous voice is hidden** in Peepo's overlay until the Pi measurement keeps it; the port works in other hosts.
+
 ## Open questions
 
 | Question | Why it matters | When to settle |
@@ -119,4 +125,4 @@ Settled in milestone 2 (21 October 2026):
 - [x] Milestone 0: vendored code, Makefile, LV2 glue and `.ttl` with the full port list. Chamber plays a struck note on Play. Loads in jalv and in Ingen under WSL.
 - [ ] Milestone 1: the resampler, every control and CV input, the three models. Renders match `elements_test`. Pi CPU and xrun check.
 - [ ] Milestone 2: guitar into Blow in and Strike in, levels, the Ominous voice if kept, Dry/wet if wanted (not wanted). Offline work done; Pi measurement of the Ominous voice to do.
-- [ ] Milestone 3: Peepo integration: overlay entry, pinned build, listening with guitar on the Pi. Tag `v0.1.0`.
+- [ ] Milestone 3: Peepo integration: overlay entry, pinned build, listening with guitar on the Pi. Tag `v0.2.0` (decided with the user on 21 October 2026: `v0.1.0` is skipped; the plan's numbering is kept). Integration done on the PC; the Pi checks and listening to do.

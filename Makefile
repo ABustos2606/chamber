@@ -106,7 +106,7 @@ test-hosts: all
 install: all
 	install -d "$(DESTDIR)$(LV2DIR)/chamber.lv2"
 	install -m 755 $(BUNDLE)/chamber.so "$(DESTDIR)$(LV2DIR)/chamber.lv2/"
-	install -m 644 $(TTL_TARGETS) LICENSE "$(DESTDIR)$(LV2DIR)/chamber.lv2/"
+	install -m 644 $(TTL_TARGETS) LICENSE THIRD_PARTY_NOTICES "$(DESTDIR)$(LV2DIR)/chamber.lv2/"
 
 lint:
 	@if command -v lv2lint >/dev/null 2>&1; then \

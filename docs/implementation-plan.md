@@ -19,7 +19,7 @@ From Discipline's plan (section 1), unchanged:
 - **License:** MIT. **Dependencies:** `lv2-dev` headers only. The resampler is Chamber's own (a polyphase 3:2 filter), not libsamplerate, so nothing new is linked.
 - **Makefile**, no configure step, no network: `make`, `make install` (`DESTDIR`, `PREFIX`, `LV2DIR`), `make test`, `make lint`, `OPT` and `SAN=1`, as in Discipline. The Pi build passes `OPT="-O2 -mcpu=cortex-a76"`.
 - **Flags:** `-std=c++17 -fPIC -fvisibility=hidden -Wall -Wextra`. The vendored code's warnings are silenced for `third_party/` only. Only `lv2_descriptor` is exported.
-- **Releases** are git tags (`v0.1.0` ...). Peepo pins a commit.
+- **Releases** are git tags (`v0.2.0` ...). Peepo pins a commit.
 
 ### Repository layout
 
@@ -179,9 +179,9 @@ The 48 kHz option would change `dsp/dsp.h` and regenerate `resources.cc`, listed
 Each has an end check. "Done" means the offline tests pass on x86-64 and arm64, plus the stated host checks.
 
 - **Milestone 0, scaffolding.** `tools/vendor.sh`, vendored files, Makefile, descriptor, `.ttl` with the full port list, `ports.hpp`, `ttl_check`. Play strikes a note at 32 kHz host rate. **Done when** `make`, `make install DESTDIR=...` and `lv2lint` are clean and Chamber loads in jalv and in Ingen under WSL. Tag `v0.0.1`.
-- **Milestone 1, the voice.** The resampler, every control and CV input, the three models, `match_elements`, `resampler`, `pitch`, `rt_timing`. Pi CPU and xrun check. Tag `v0.1.0`; Peepo adds its overlay entry and pinned build.
+- **Milestone 1, the voice.** The resampler, every control and CV input, the three models, `match_elements`, `resampler`, `pitch`, `rt_timing`. Pi CPU and xrun check. Not tagged: `v0.1.0` was skipped (21 October 2026), and the first release Peepo pins is `v0.2.0`.
 - **Milestone 2, guitar.** Blow in and Strike in levels, `external_input`, the Ominous voice measured on the Pi and kept only if it fits (otherwise `ominous` stays inert and hidden in Peepo), Dry/wet if wanted (not wanted, 21 October 2026). Model and Ominous changes fade (section 4.4, `switches`). Tag `v0.2.0`. Record: `docs/milestone-2-validation.md`.
-- **Milestone 3, listening.** Guitar on the Pi; defaults tuned for guitar use. `v0.2.x` tags of tuning.
+- **Milestone 3, Peepo and listening.** Section 9 in Peepo, at the `v0.2.0` commit (`lv2:minorVersion 2`, `microVersion 0`). Guitar on the Pi; defaults tuned for guitar use. `v0.2.x` tags of tuning. Record: `docs/milestone-3-validation.md`.
 
 ## 9. Peepo-side work
 
@@ -191,6 +191,15 @@ In Peepo's repository, not here:
 2. URIs in `config/catalogue/inventory.txt` and `tools/catalogue-inventory.py`.
 3. Overlay entry: name "Chamber", category Resonator, a description that says what it does, `"output": "output"`, groups (**Exciter**, **Resonator**, **Pitch**, **Play and input**, **CV amounts**).
 4. `docs/37-module-names.md` and `docs/33-module-list.md` regenerated.
+
+Done on 21 October 2026, except the pin's final commit and the Pi steps (`docs/milestone-3-validation.md`):
+
+- Steps 1 and 2 as written; Chamber builds with Discipline's flags (`-O2`, `-mcpu=cortex-a76` on the Pi). `inventory.txt` is edited by hand beside the script, because the committed file already lists plugins the script does not (midi-cv, midi-pc), and regenerating it would drop them.
+- Step 3 with eight pages instead of five, so no page has more than six controls: **Resonator** (Model, Geometry, Brightness, Damping, Position, Space), **Input and output**, **Play** (Play, Strength, Contour), **Strike**, **Bow and blow**, **Pitch**, **Exciter CV amounts**, **Resonator CV amounts**. `ominous` is hidden until the Pi measurement keeps it. No `"bypass": "port"`: Chamber has no on/off port, so the engine's bypass applies (plan section 1).
+- Step 4: `docs/37-module-names.md` already names Chamber; `docs/33-module-list.md` is regenerated from the Pi's catalogue, so it waits for the Pi.
+- Also: a row in Peepo's `THIRD_PARTY_NOTICES.md`, and the Chamber section of its roadmap (`docs/38-eurorack-ports-roadmap.md`).
+
+Found on the way: Peepo's exporter offers an `lv2:InstrumentPlugin` only after it is checked with a MIDI controller ("Played by MIDI notes"), and the overlay cannot override that. Chamber has no MIDI input, so from `v0.2.0` it is an `lv2:GeneratorPlugin` (`ttl_check` holds it there). Class only: no URI or port changes.
 
 ## 10. Risks
 

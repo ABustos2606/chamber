@@ -3,14 +3,17 @@
 An LV2 modal synthesis voice, written for Peepo and other LV2 hosts. MIT
 licensed, Copyright (c) 2026 Alejandro Bustos.
 
-**Status, 21 October 2026: milestones 1 and 2 in progress.** `v0.0.1` is the
+**Status, 21 October 2026: milestones 1 to 3 in progress; this is `v0.2.0`,
+the first release Peepo builds.** `v0.0.1` is the
 scaffold. Since then the voice runs at 32 kHz at any host rate, through
 Chamber's own resampler (88 frames of latency at 48 kHz), every control and
 CV input is tested, a guitar at Strike in rings each resonator model, and
-changing the model or the Ominous voice no longer clicks. The Pi CPU and xrun
-checks, including whether the Ominous voice fits, are still to do. See
-[docs/milestone-1-validation.md](docs/milestone-1-validation.md) and
-[docs/milestone-2-validation.md](docs/milestone-2-validation.md).
+changing the model or the Ominous voice no longer clicks. Peepo's build step,
+inventory and overlay entry are written. The Pi CPU and xrun checks, including
+whether the Ominous voice fits, and listening with a guitar are still to do.
+See [docs/milestone-1-validation.md](docs/milestone-1-validation.md),
+[docs/milestone-2-validation.md](docs/milestone-2-validation.md) and
+[docs/milestone-3-validation.md](docs/milestone-3-validation.md).
 
 Chamber models a resonating body played by bowing, blowing or striking it.
 Three exciters, shaped by one envelope, drive a resonator of up to 64 modes:
@@ -57,5 +60,6 @@ pinned build integration and hardware evidence belong in Peepo's repository.
 Chamber's sound engine is the code of Elements, a eurorack module designed by
 Emilie Gillet, published under the MIT license at
 https://github.com/pichenettes/eurorack. The vendored files in
-`third_party/eurorack/` keep their copyright notices. Chamber is not
+`third_party/eurorack/` keep their copyright notices, and `make install`
+puts that notice in the bundle as `THIRD_PARTY_NOTICES`. Chamber is not
 affiliated with or endorsed by Mutable Instruments, a registered trademark.

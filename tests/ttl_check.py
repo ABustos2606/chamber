@@ -51,6 +51,10 @@ def check(bundle):
 
     graph = rdflib.Graph().parse(bundle / "chamber.ttl", format="turtle")
     require((PLUGIN, RDF.type, LV2.Plugin) in graph, "plugin class")
+    # Peepo withholds an InstrumentPlugin as "played by MIDI notes" until it
+    # is checked with a controller; Chamber has no MIDI input.
+    require((PLUGIN, RDF.type, LV2.GeneratorPlugin) in graph and (PLUGIN, RDF.type, LV2.InstrumentPlugin) not in graph,
+            "plugin class: a generator, not an instrument")
     require(graph.value(PLUGIN, DOAP.license) == URIRef("https://spdx.org/licenses/MIT"), "license")
     require(str(graph.value(PLUGIN, DOAP.name)) == "Chamber", "name")
     require(not FORBIDDEN.search(str(graph.value(PLUGIN, RDFS.comment))), "description names the original")
