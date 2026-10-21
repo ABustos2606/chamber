@@ -53,6 +53,8 @@ private:
     uint32_t random_state_ = kRandomSeed;
     int model_ = -1;
     int ominous_ = -1;
+    // Output gain while a model or Ominous switch fades out and in.
+    float switch_gain_ = 1;
     // elements.cc: FillBuffer's input level followers.
     float blow_in_follower_ = 0;
     float strike_in_follower_ = 0;

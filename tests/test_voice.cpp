@@ -261,6 +261,174 @@ void test_rate_equivalence(const LV2_Descriptor* d)
     std::cout << "PASS rate equivalence: at 48 kHz each model is Elements' 32 kHz output, upsampled\n";
 }
 
+// --- external input ------------------------------------------------------------
+
+// Power of x at frequency f (Hann window), as in fundamental().
+double power_at(const std::vector<float>& x, double rate, double f)
+{
+    const size_t n = x.size();
+    const double w = 2.0 * M_PI * f / rate;
+    double re = 0, im = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const double hann = 0.5 - 0.5 * std::cos(2.0 * M_PI * i / (n - 1));
+        re += hann * x[i] * std::cos(w * i);
+        im -= hann * x[i] * std::sin(w * i);
+    }
+    return re * re + im * im;
+}
+
+double rms(const std::vector<test::Stereo>& x, size_t from, size_t to)
+{
+    double sum = 0;
+    for (size_t i = from; i < to; ++i) { sum += x[i].l * x[i].l + x[i].r * x[i].r; }
+    return std::sqrt(sum / (2.0 * (to - from)));
+}
+
+// A plucked guitar note: harmonics of 110 Hz, picked sharply, decaying.
+float pluck(double t, float amplitude)
+{
+    if (t < 0) { return 0.0f; }
+    double y = 0;
+    for (int h = 1; h <= 12; ++h) { y += std::sin(2 * M_PI * 110.0 * h * t + h) / h; }
+    return static_cast<float>(amplitude * 0.5 * std::exp(-30 * t) * y);
+}
+
+struct External {
+    Port into = Port::strike_in;
+    float model = 0;
+    float level_db = 0;
+    float amplitude = 0.3f;
+    bool gate = false;
+    bool silent = false;
+};
+
+std::vector<test::Stereo> render_external(const LV2_Descriptor* d, const External& e)
+{
+    Instance instance(d, 48000, 128);
+    instance.control(Port::model) = e.model;
+    instance.control(Port::coarse) = 36;     // note 55, 196 Hz
+    instance.control(Port::damping) = 0.7f;  // long ring (higher is longer)
+    instance.control(Port::space) = 0;
+    instance.control(Port::strike_level) = 0; // no internal exciter
+    instance.control(Port::blow_in_level) = instance.control(Port::strike_in_level) = e.level_db;
+    return instance.render(48000 * 3 / 2, [&](Instance& in, uint32_t i, uint64_t frame) {
+        const double t = frame / 48000.0 - 0.1;
+        in.signal(e.into, i) = e.silent ? 0.0f : pluck(t, e.amplitude);
+        in.signal(Port::gate_cv, i) = e.gate ? 1.0f : 0.0f;
+    });
+}
+
+void test_external_input(const LV2_Descriptor* d)
+{
+    const double note = 440.0 * std::pow(2.0, (36 + 19 - 69) / 12.0);
+    // Nothing comes out without the input: the sound is the guitar's.
+    {
+        External e;
+        e.silent = true;
+        const auto out = render_external(d, e);
+        require(rms(out, 0, out.size()) < 1e-6, "silent without input");
+    }
+    // Strike in goes straight into the resonator, no gate needed. Once the
+    // pluck has died away the resonator still rings at its own note, not at
+    // the guitar's 110 Hz.
+    for (float model : {0.0f, 1.0f, 2.0f}) {
+        External e;
+        e.model = model;
+        const auto out = render_external(d, e);
+        std::vector<float> tail;
+        for (size_t i = 48000; i < out.size(); ++i) { tail.push_back(out[i].r); }
+        const double f = fundamental(tail, 48000, note);
+        const double ring = power_at(tail, 48000, f);
+        const double guitar = std::max(power_at(tail, 48000, 110.0), power_at(tail, 48000, 220.0));
+        std::printf("external strike in, model %.0f: tail %.1f dB, rings at %.2f Hz (%+.2f cents), "
+                    "%.1f dB over the guitar's notes\n", model, 20 * std::log10(rms(out, 48000, out.size())),
+                    f, cents(f, note), 10 * std::log10(ring / guitar));
+        require(rms(out, 48000, out.size()) > 1e-3, "strike in rings after the pluck");
+        require(std::fabs(cents(f, note)) < 10, "strike in rings at the resonator's note");
+        require(ring > 100 * guitar, "resonator's note 20 dB over the guitar's");
+    }
+    // Blow in passes the exciter envelope (voice.cc: blow_buffer_ * e): it
+    // needs a gate or Play.
+    {
+        External e;
+        e.into = Port::blow_in;
+        const double closed = rms(render_external(d, e), 0, 48000 * 3 / 2);
+        e.gate = true;
+        const auto open = render_external(d, e);
+        // The gate alone, with no exciter level, makes no sound.
+        e.silent = true;
+        const double gate_only = rms(render_external(d, e), 0, 48000 * 3 / 2);
+        std::printf("external blow in: %.1f dB gated, %.1f dB without gate, gate alone %.1f dB\n",
+                    20 * std::log10(rms(open, 0, open.size())), 20 * std::log10(closed + 1e-12),
+                    20 * std::log10(gate_only + 1e-12));
+        require(rms(open, 0, open.size()) > 1e-3, "blow in sounds with the gate held");
+        require(closed < 1e-6 && gate_only < 1e-6, "blow in is silent without a gate");
+    }
+    // Input levels are gains: -12 dB in, 12 dB less out (the resonator is
+    // linear at these levels; the soft limiter barely touches them).
+    for (Port into : {Port::strike_in, Port::blow_in}) {
+        External e;
+        e.into = into;
+        e.gate = into == Port::blow_in;
+        e.amplitude = 0.1f;
+        const double full = rms(render_external(d, e), 4800, 48000);
+        e.level_db = -12;
+        const double low = rms(render_external(d, e), 4800, 48000);
+        const double change = 20 * std::log10(low / full);
+        std::printf("external %s level -12 dB: output %+.2f dB\n", into == Port::strike_in ? "strike" : "blow", change);
+        require(std::fabs(change + 12) < 0.5, "input level is a gain in dB");
+    }
+    std::cout << "PASS external input: Strike in rings each model at its note; Blow in needs a gate; levels in dB\n";
+}
+
+// --- model and voice switches --------------------------------------------------
+
+// Largest second difference: a click shows as a spike far above a ringing
+// note's.
+double roughness(const std::vector<test::Stereo>& x, size_t from, size_t to)
+{
+    double worst = 0;
+    for (size_t i = std::max<size_t>(from, 2); i < to; ++i) {
+        worst = std::max({worst, std::fabs(x[i].l - 2.0 * x[i - 1].l + x[i - 2].l),
+                          std::fabs(x[i].r - 2.0 * x[i - 1].r + x[i - 2].r)});
+    }
+    return worst;
+}
+
+void test_switches(const LV2_Descriptor* d)
+{
+    struct Switch {
+        Port port;
+        float from, to;
+        const char* name;
+    };
+    for (const Switch& s : {Switch{Port::model, 0, 1, "modal to string"}, Switch{Port::model, 2, 0, "strings to modal"},
+                            Switch{Port::ominous, 0, 1, "Ominous on"}, Switch{Port::ominous, 1, 0, "Ominous off"}}) {
+        const uint64_t at = 48000;
+        Instance instance(d, 48000, 128);
+        instance.random_slices = false;
+        instance.control(Port::coarse) = 36;
+        instance.control(Port::damping) = 0.7f;
+        instance.control(Port::space) = 0;
+        instance.control(s.port) = s.from;
+        const auto out = instance.render(2 * at, [&](Instance& in, uint32_t i, uint64_t frame) {
+            // A note before the switch, and one after it for the new voice.
+            const bool second = frame >= at + 12000 && frame < at + 16800;
+            in.signal(Port::gate_cv, i) = frame < 4800 || second ? 1.0f : 0.0f;
+            in.control(s.port) = frame < at ? s.from : s.to;
+        });
+        // The fade takes 8 ms (384 frames at 48 kHz) plus the latency; judge
+        // the 50 ms after the change against the steady sound either side.
+        const double before = roughness(out, at - 9600, at);
+        const double during = roughness(out, at, at + 2400);
+        const double after = roughness(out, at + 2400, at + 12000);
+        std::printf("switch %s: roughness %.2g before, %.2g at the switch, %.2g after\n", s.name, before, during, after);
+        require(during <= 2 * std::max(before, after), std::string("no click: ") + s.name);
+        require(rms(out, at + 14400, at + 24000) > 1e-3, std::string("new voice plays: ") + s.name);
+    }
+    std::cout << "PASS switches: model and Ominous changes fade, no click\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -271,6 +439,8 @@ int main(int argc, char** argv)
         test::Library library(argv[1]);
         test_pitch(library.descriptor);
         test_rate_equivalence(library.descriptor);
+        test_external_input(library.descriptor);
+        test_switches(library.descriptor);
     } catch (const std::exception& e) {
         std::cerr << "FAIL voice: " << e.what() << '\n';
         return 1;

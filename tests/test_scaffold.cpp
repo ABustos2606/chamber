@@ -213,12 +213,15 @@ void test_allocation(const LV2_Descriptor* d)
 #endif
 }
 
-void test_timing(const LV2_Descriptor* d)
+void test_timing(const LV2_Descriptor* d, bool ominous)
 {
-    // Worst case: 64 modes, the Strings model, full reverb, every exciter on.
+    // Worst case: 64 modes, the Strings model, full reverb, every exciter on;
+    // or the Ominous voice with the same settings (its two oscillators run
+    // oversampled).
     Instance instance(d, 48000, 128);
     instance.measure = true;
     instance.control(Port::model) = 2;
+    instance.control(Port::ominous) = ominous ? 1.0f : 0.0f;
     instance.control(Port::space) = 1;
     instance.control(Port::bow_level) = instance.control(Port::blow_level) = 1;
     const double seconds = 60;
@@ -233,7 +236,7 @@ void test_timing(const LV2_Descriptor* d)
     const double period_us = 128 / 48000.0 * 1e6;
     double total = 0;
     for (double t : times) { total += t; }
-    std::cout << "TIMING 48 kHz, 128 frames (" << period_us << " us): mean " << total / times.size()
+    std::cout << "TIMING " << (ominous ? "Ominous" : "Strings") << ", 48 kHz, 128 frames (" << period_us << " us): mean " << total / times.size()
               << " us, 99.9% " << times[times.size() * 999 / 1000] << " us, worst " << times.back()
               << " us, load " << 100 * total / (seconds * 1e6) << "%\n";
 }
@@ -246,7 +249,8 @@ int main(int argc, char** argv)
     try {
         test::Library library(argv[1]);
         if (argc > 2 && std::strcmp(argv[2], "--timing") == 0) {
-            test_timing(library.descriptor);
+            test_timing(library.descriptor, false);
+            test_timing(library.descriptor, true);
             return 0;
         }
         test_descriptor(library);

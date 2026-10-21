@@ -16,6 +16,9 @@ namespace {
 
 // elements.cc: kNoiseGateThreshold.
 constexpr float kNoiseGateThreshold = 0.0001f;
+// A model or Ominous switch fades out over 4 ms, then in over 4 ms
+// (128 samples at 32 kHz).
+constexpr float kSwitchStep = 1.0f / 128.0f;
 
 LV2_Handle instantiate(const LV2_Descriptor*, double rate, const char*, const LV2_Feature* const*)
 {
@@ -98,6 +101,7 @@ void Chamber::activate() noexcept
     bridge_.reset();
     random_state_ = kRandomSeed;
     model_ = ominous_ = -1;
+    switch_gain_ = 1;
     blow_in_follower_ = strike_in_follower_ = 0;
     first_ = true;
 }
@@ -155,15 +159,20 @@ void Chamber::run(uint32_t frames) noexcept
 
 void Chamber::process_block(BlockBuffer& block, uint32_t frame) noexcept
 {
+    // set_resonator_model and set_easter_egg only choose what Part renders:
+    // the voice that was sounding stops dead, and the other resumes from
+    // where it was left, which clicks. A change fades the output out, then
+    // switches, then fades back in. The first block applies the patch's
+    // settings at once.
     const int model = static_cast<int>(std::lround(control(Port::model, 0, 0, 2)));
-    if (model != model_) {
-        part_->set_resonator_model(static_cast<elements::ResonatorModel>(model));
-        model_ = model;
-    }
     const int ominous = control(Port::ominous, 0, 0, 1) >= 0.5f;
-    if (ominous != ominous_) {
+    bool switching = model != model_ || ominous != ominous_;
+    if (switching && (model_ < 0 || switch_gain_ <= 0.0f)) {
+        part_->set_resonator_model(static_cast<elements::ResonatorModel>(model));
         part_->set_easter_egg(ominous);
+        model_ = model;
         ominous_ = ominous;
+        switching = false;
     }
 
     elements::PerformanceState state;
@@ -176,6 +185,14 @@ void Chamber::process_block(BlockBuffer& block, uint32_t frame) noexcept
     stmlib::Random::Seed(random_state_);
     part_->Process(state, block.blow, block.strike, block.main, block.aux, BlockBuffer::kSize);
     random_state_ = stmlib::Random::state();
+
+    if (!switching && switch_gain_ == 1.0f) { return; }
+    const float step = switching ? -kSwitchStep : kSwitchStep;
+    for (uint32_t i = 0; i < BlockBuffer::kSize; ++i) {
+        switch_gain_ = std::clamp(switch_gain_ + step, 0.0f, 1.0f);
+        block.main[i] *= switch_gain_;
+        block.aux[i] *= switch_gain_;
+    }
 }
 
 } // namespace chamber

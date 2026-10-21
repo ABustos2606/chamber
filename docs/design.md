@@ -2,7 +2,7 @@
 
 Chamber is a modal synthesis voice for Peepo, a pedal built on a Raspberry Pi 5 running the Ingen modular host. Bow, blow and strike exciters drive a resonator, followed by a reverb; external audio, such as a guitar, can excite the resonator in place of the built-in exciters. It is an LV2 plugin made from the open-source code of Elements, a eurorack module by Emilie Gillet. It must also work as a normal LV2 plugin in Carla or Ardour.
 
-**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 done, `v0.0.1` (21 October 2026); see `docs/milestone-0-validation.md`. Milestone 1 in progress.
+**Written:** 20 October 2026, from Peepo's `docs/38-eurorack-ports-roadmap.md` and a reading of Elements' source at `pichenettes/eurorack` commit `f4cfa7697095a28d292bff758beb51deb49b5a86` (12 October 2026). **Status:** milestone 0 done, `v0.0.1` (21 October 2026); see `docs/milestone-0-validation.md`. Milestones 1 and 2 in progress: their offline work is done, the Pi checks are not; see `docs/milestone-1-validation.md` and `docs/milestone-2-validation.md`.
 
 ## Why Elements
 
@@ -41,7 +41,7 @@ From the source (`dsp/part.h`, `dsp/patch.h`, `cv_scaler.*`, `ui.cc`, `elements.
 - **Resonator.** Up to 64 modes. Geometry, Brightness, Damping and Position; pitch from Coarse, Fine, FM and V/oct. Three models, cycled by a hidden gesture: **modal** (the original), **string** and **strings**.
 - **Space.** Stereo width and reverb amount in one knob.
 - **Play.** A button and a gate input start the exciter envelope; Strength (pressure CV) sets velocity.
-- **Ominous voice.** A hidden mode (`set_easter_egg`) that replaces the modal voice with a different synthesis voice (`dsp/ominous_voice.cc`); listen before describing it to users.
+- **Ominous voice.** A hidden mode (`set_easter_egg`) that replaces the modal voice with a different synthesis voice (`dsp/ominous_voice.cc`); listen before describing it to users. From the source: two feedback-FM oscillators, run oversampled, through two multimode filters and a VCA on the exciter envelope, each moved around the stereo field. The panel's knobs take new jobs (exciter levels set the oscillator levels and detune, meta and timbre set ratio and FM amount, Geometry the filter shape, Position the movement). It is silent without a gate. Audio at Blow in and Strike in frequency-modulates the two oscillators instead of exciting a resonator. At the default settings it is about 17 dB louder than the modal voice (milestone 2).
 - **Attenuverters** on most parameters, scaling their CV inputs.
 - **Outputs:** main and aux, a stereo pair (`elements.cc` writes main to the right output and aux to the left).
 
@@ -80,7 +80,14 @@ Chamber resamples (decided with the user on 20 October 2026). Option 2 stays a p
 
 ## Guitar use
 
-The guitar enters at Strike in (straight into the resonator) or Blow in (through the blow filter, which also tracks its level). With the exciter levels at zero, Chamber is a resonator effect: strings and plates that ring with the guitar. Play and the gate still start the envelope for the internal exciters; with only the external input, no gate is needed. A Dry/wet control is **not** in Elements; Peepo's mixer modules handle it. **Open question:** add Dry/wet anyway.
+The guitar enters at Strike in or Blow in. With the exciter levels at zero, Chamber is a resonator effect: strings and plates that ring with the guitar.
+
+- **Strike in** goes straight into the resonator. No gate is needed: a guitar alone makes it ring, at the resonator's pitch, not the guitar's.
+- **Blow in** is added to the blow exciter, then passes the diffuser and the exciter envelope (`voice.cc`: `blow_buffer_ * e`). It is heard only while Play or a gate is held, shaped by Contour. Found in milestone 2; the first draft of this section said no input needed a gate.
+- Play and the gate start the envelope for the internal exciters, and for Blow in.
+- With the Ominous voice on, both inputs frequency-modulate its oscillators instead (see above), and it needs a gate.
+
+There is no Dry/wet control (decided with the user on 21 October 2026): it is not in Elements, and Peepo's mixer modules blend the dry guitar.
 
 ## Memory
 
@@ -95,17 +102,21 @@ Settled with the user on 20 October 2026:
 
 Settled in milestone 1 (21 October 2026): **other host rates** (44.1, 96 kHz and any integer rate) go through the same resampler, tested at 44.1, 48 and 96 kHz.
 
+Settled in milestone 2 (21 October 2026):
+
+- **No Dry/wet** (with the user). Peepo's mixer modules blend the dry guitar.
+- **Model and Ominous changes fade**: 4 ms out, switch, 4 ms in. Elements switches at once, and the voice that was sounding stops dead, which clicks.
+
 ## Open questions
 
 | Question | Why it matters | When to settle |
 | --- | --- | --- |
 | CPU on the Pi | 64 modes and the reverb at 32 kHz, plus resampling | Milestone 1, measured; reduce the mode count if needed |
-| Dry/wet | Guitar use without a mixer module | Milestone 2 |
-| Ominous voice CPU | Kept only if it fits on the Pi | Milestone 2, measured |
+| Ominous voice CPU | Kept only if it fits on the Pi. On a desktop it costs 1.8 times the worst modal case | Milestone 2, measured on the Pi |
 
 ## Milestones
 
 - [x] Milestone 0: vendored code, Makefile, LV2 glue and `.ttl` with the full port list. Chamber plays a struck note on Play. Loads in jalv and in Ingen under WSL.
 - [ ] Milestone 1: the resampler, every control and CV input, the three models. Renders match `elements_test`. Pi CPU and xrun check.
-- [ ] Milestone 2: guitar into Blow in and Strike in, levels, the Ominous voice if kept, Dry/wet if wanted.
+- [ ] Milestone 2: guitar into Blow in and Strike in, levels, the Ominous voice if kept, Dry/wet if wanted (not wanted). Offline work done; Pi measurement of the Ominous voice to do.
 - [ ] Milestone 3: Peepo integration: overlay entry, pinned build, listening with guitar on the Pi. Tag `v0.1.0`.

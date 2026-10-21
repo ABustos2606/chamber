@@ -3,18 +3,23 @@
 An LV2 modal synthesis voice, written for Peepo and other LV2 hosts. MIT
 licensed, Copyright (c) 2026 Alejandro Bustos.
 
-**Status, 21 October 2026: milestone 1 in progress.** `v0.0.1` is the
+**Status, 21 October 2026: milestones 1 and 2 in progress.** `v0.0.1` is the
 scaffold. Since then the voice runs at 32 kHz at any host rate, through
-Chamber's own resampler (88 frames of latency at 48 kHz), and every control
-and CV input is tested. The Pi CPU and xrun check is still to do. See
-[docs/milestone-1-validation.md](docs/milestone-1-validation.md).
+Chamber's own resampler (88 frames of latency at 48 kHz), every control and
+CV input is tested, a guitar at Strike in rings each resonator model, and
+changing the model or the Ominous voice no longer clicks. The Pi CPU and xrun
+checks, including whether the Ominous voice fits, are still to do. See
+[docs/milestone-1-validation.md](docs/milestone-1-validation.md) and
+[docs/milestone-2-validation.md](docs/milestone-2-validation.md).
 
 Chamber models a resonating body played by bowing, blowing or striking it.
 Three exciters, shaped by one envelope, drive a resonator of up to 64 modes:
 Geometry picks the kind of body (plates, bars, strings, tubes), Brightness,
 Damping and Position shape its sound, and Space adds stereo width and reverb.
-Play or a gate starts a note; V/oct sets its pitch. Two audio inputs let a
-guitar excite the resonator directly, so Chamber also works as an effect.
+Play or a gate starts a note; V/oct sets its pitch. A guitar at Strike in
+excites the resonator directly, with no gate, so Chamber also works as an
+effect; Blow in passes the exciter envelope and is heard while Play or a gate
+is held.
 
 | Plugin | URI |
 | --- | --- |

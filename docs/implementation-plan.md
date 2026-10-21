@@ -114,8 +114,6 @@ Built in milestone 1 (21 October 2026), `src/resampler.hpp` and `src/rate_bridge
 
 Resampling was chosen on 20 October 2026. The alternative in the spec (tables regenerated at 48 kHz) would change only this section, and only as a later optimisation.
 
-Resampling was chosen on 20 October 2026. The alternative in the spec (tables regenerated at 48 kHz) would change only this section, and only as a later optimisation.
-
 ### 4.3 Controls
 
 `controls.cpp` copies `cv_scaler.cc`'s `Read`: each pot plus its attenuverted CV into `Patch`; pitch from Coarse, Fine, FM and V/oct; `PerformanceState.gate` from `play` OR `gate_cv`; `strength` is the control plus `strength_cv`, clamped, because a plugin can't tell an unpatched input from 0 V. Calibration offsets from the hardware are dropped. CV scale: 1.0 = 5 V; V/oct is `cv * 60` semitones.
@@ -129,6 +127,8 @@ It runs once per 16-frame block, as `Read` runs once per codec block, with the s
 ### 4.4 Model and Ominous voice
 
 `set_resonator_model` and `set_easter_egg` are called when `model` or `ominous` changes, at a block boundary. Check what they reset; fade around a change if it clicks.
+
+Checked in milestone 2 (21 October 2026): neither resets anything. Each only chooses what `Part::Process` renders; the modal resonator, the strings and the Ominous voice keep their own state. The voice that was sounding stops dead (a click 50 to 760 times the ringing note's second difference, `switches` test), and one switched back to resumes from where it stopped. Chamber therefore fades: on a change, the voice's output ramps to zero over 128 samples at 32 kHz (4 ms), both settings are applied together, and it ramps back over 4 ms. The reverb is inside `Part`, so its tail dips with the rest for those 8 ms. The first block after `activate()` applies the patch's settings at once, so `match_elements` stays bit for bit. The resumed state is upstream behaviour and is kept.
 
 ## 5. Real-time rules, checked
 
@@ -150,9 +150,10 @@ It runs once per 16-frame block, as `Read` runs once per codec block, with the s
 | `pitch` | the note handed to Elements moves exactly 12 semitones per 0.2 of V/oct; the modal voice's measured fundamental stays within 5 cents of that note over 5 octaves. The first draft asked for 1 cent, but Elements' own 32 kHz output is up to 2.8 cents off its note (its resonator's fast frequency approximations, kept as written), and Chamber adds nothing to that: see `rate equivalence` |
 | `rate equivalence` | at 48 kHz, each model's output is the 32 kHz output through the same upsampler, within 1e-6 of peak |
 | `controls` | each knob and CV changes the matching `Patch` field and nothing else |
-| `external_input` | guitar-like input at Strike in, exciter levels 0: output rings at the resonator's pitch |
+| `external_input` | guitar-like input at Strike in, exciter levels 0, no gate: each model rings at the resonator's note after the pluck has died, 20 dB over the guitar's notes; silent with no input; Blow in silent without a gate and heard with one; `-12 dB` input level gives 12 dB less output (within 0.5 dB; the noise gate takes the rest) |
+| `switches` | model and Ominous changes while a note rings: no click (the largest second difference after the change at most twice that of the steady sound on either side); the new voice plays its next note |
 | `nonfinite` | NaN input: output finite, recovers |
-| `rt_timing` | `make test-timing`: 60 simulated seconds at 48 kHz, worst case (Strings, full reverb, every exciter, moving Geometry): mean, 99.9th percentile and worst `run()` time per period. Informative only off the Pi |
+| `rt_timing` | `make test-timing`: 60 simulated seconds at 48 kHz, worst case (Strings, full reverb, every exciter, moving Geometry), then the same with the Ominous voice: mean, 99.9th percentile and worst `run()` time per period. Informative only off the Pi |
 | `render` | `tools/render` writes a WAV (smoke-tested by `make test`) |
 
 ### 6.2 Desktop hosts
@@ -179,7 +180,7 @@ Each has an end check. "Done" means the offline tests pass on x86-64 and arm64, 
 
 - **Milestone 0, scaffolding.** `tools/vendor.sh`, vendored files, Makefile, descriptor, `.ttl` with the full port list, `ports.hpp`, `ttl_check`. Play strikes a note at 32 kHz host rate. **Done when** `make`, `make install DESTDIR=...` and `lv2lint` are clean and Chamber loads in jalv and in Ingen under WSL. Tag `v0.0.1`.
 - **Milestone 1, the voice.** The resampler, every control and CV input, the three models, `match_elements`, `resampler`, `pitch`, `rt_timing`. Pi CPU and xrun check. Tag `v0.1.0`; Peepo adds its overlay entry and pinned build.
-- **Milestone 2, guitar.** Blow in and Strike in levels, `external_input`, the Ominous voice measured on the Pi and kept only if it fits (otherwise `ominous` stays inert and hidden in Peepo), Dry/wet if wanted. Tag `v0.2.0`.
+- **Milestone 2, guitar.** Blow in and Strike in levels, `external_input`, the Ominous voice measured on the Pi and kept only if it fits (otherwise `ominous` stays inert and hidden in Peepo), Dry/wet if wanted (not wanted, 21 October 2026). Model and Ominous changes fade (section 4.4, `switches`). Tag `v0.2.0`. Record: `docs/milestone-2-validation.md`.
 - **Milestone 3, listening.** Guitar on the Pi; defaults tuned for guitar use. `v0.2.x` tags of tuning.
 
 ## 9. Peepo-side work
