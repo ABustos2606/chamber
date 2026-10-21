@@ -123,7 +123,7 @@ float Chamber::input(Port port, uint32_t frame) const noexcept
 void Chamber::run(uint32_t frames) noexcept
 {
     const float blow_in_target = db_to_gain(control(Port::blow_in_level, 0, -24, 24));
-    const float strike_in_target = db_to_gain(control(Port::strike_in_level, 0, -24, 24));
+    const float strike_in_target = db_to_gain(control(Port::strike_in_level, -9, -24, 24));
     const float output_target = db_to_gain(control(Port::output, 0, -24, 12));
     if (first_) {
         blow_in_gain_ = blow_in_target; strike_in_gain_ = strike_in_target; output_gain_ = output_target;

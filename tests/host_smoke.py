@@ -158,7 +158,9 @@ def main():
             require(state["finite"], "finite output")
             return max(state["peak"])
 
-        host = launch("jalv", ["jalv", "-i", "-n", "chamber_jalv", URI])
+        # Every exciter is off by default (a guitar effect); raise Strike level
+        # so a gate strikes a note.
+        host = launch("jalv", ["jalv", "-i", "-n", "chamber_jalv", "-c", "strike_level=0.8", URI])
         wait_for(lambda: bool(probe.get_ports("chamber_jalv:out_r")), "jalv did not load Chamber")
         time.sleep(0.5)
         require(host.poll() is None, "jalv failed during activation")
@@ -188,6 +190,7 @@ def main():
             for name in ("chamber", "chamber2"):
                 protocol.put(f"ingen:/main/{name}", f"a ingen:Block ; lv2:prototype <{URI}>")
                 protocol.connect("ingen:/main/gate_in", f"ingen:/main/{name}/gate_cv")
+                protocol.set(name, "strike_level", 0.8)
             protocol.connect("ingen:/main/chamber/out_l", "ingen:/main/out_l")
             protocol.connect("ingen:/main/chamber2/out_r", "ingen:/main/out_r")
             protocol.set("chamber2", "model", 2)

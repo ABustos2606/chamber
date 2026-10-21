@@ -112,6 +112,7 @@ Settled in milestone 3 (21 October 2026):
 - **`v0.2.0`** is the first release Peepo pins (with the user); `v0.1.0` is skipped.
 - **Chamber is an `lv2:GeneratorPlugin`**, not an `lv2:InstrumentPlugin`: Peepo withholds instruments as "played by MIDI notes", and Chamber has no MIDI input. Its category in Peepo comes from the overlay (Resonator).
 - **The Ominous voice is hidden** in Peepo's overlay until the Pi measurement keeps it; the port works in other hosts.
+- **Guitar-friendly defaults** (v0.2.1, after the user's guitar test on the Pi): a new Chamber is the "Bells" voice the user chose. Every exciter is off, so it is silent until a guitar at Strike in plays it, and Play or a gate does nothing until an exciter level is raised. Geometry 0.72, Brightness 0.68, Damping 0.82, Space 0.88, Coarse 33 (E, for a standard-tuned guitar), Strike in level -9 dB. Elements' own panel values are no longer the defaults; the tests keep using them.
 
 ## Open questions
 

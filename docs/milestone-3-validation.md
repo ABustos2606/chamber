@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: MIT -->
 # Milestone 3 validation
 
-**In progress.** Recorded 21 October 2026. Done on the PC: release `v0.2.0` prepared (plugin class, version, notices), and Peepo's side of plan section 9 written and checked against Peepo's own catalogue code. To do: commit and tag `v0.2.0`, move Peepo's pin to that commit, then the Pi checks and listening with a guitar (below).
+**In progress.** Recorded 21 October 2026. Done: release `v0.2.0` (plugin class, version, notices), Peepo's side of plan section 9, installation on the Pi, the user's guitar test (passed), and `v0.2.1` with guitar-friendly defaults. To do: tags, the pin, and the Pi checks that need a sound power supply (below).
 
 ## Chamber, release `v0.2.0`
 
@@ -72,10 +72,29 @@ Chamber `b15b3dc` (Milestone 3, not tagged) on the Pi 5 (`patchbox`, Debian 12, 
 
 Not done on the Pi: Chamber in a patch with guitar, `measure-effect.py`, a 30-minute xrun run with and without the Ominous voice, listening. The mean costs (3% and 5% of a core) leave room; whether the Ominous voice is unhidden waits for the xrun run, on a Pi without the under-voltage.
 
+## Listening and defaults, `v0.2.1`
+
+The user played Chamber with a guitar on the Pi (21 October 2026), in a showcase patch of three Chambers, one per model, built for the purpose (`Chamber showcase` on the Pi). **Their test passed**; their favourite is the Modal "Bells" voice. Findings while playing:
+
+- The Strings voice rang on the guitar notes it is tuned to (E and B), which on the user's guitar, tuned three semitones down, are the G and D shapes. Offline, per note from E2 to E4: Strings rings within 3 dB on E and B, 16 to 20 dB lower on G and D.
+- Every click heard was a JACK xrun, and every xrun came within 4 ms of the kernel's "Undervoltage detected!" (20 of 20 in 15 minutes): the Pi's power supply, not Chamber. It clicked as often before Chamber was installed.
+
+So `v0.2.1` makes a new Chamber that Bells voice (design, Decisions; plan section 3): every exciter off, Geometry 0.72, Brightness 0.68, Damping 0.82, Space 0.88, Coarse 33 (E), Strike in level -9 dB. Saved patches keep their own values.
+
+| Check | Result |
+| --- | --- |
+| `defaults` test | silent alone; Play and a gate alone silent; guitar E notes into the E bell peak at 0.82, and 0.5 to 1.5 s after the guitar is muted it rings at -8.6 dBFS |
+| `ttl_check` | Turtle defaults, C++ fallbacks and the test host's `plugin_defaults()` agree for every control |
+| x86-64 `make test`; `make test-hosts` (jalv and Ingen raise Strike level for their gate checks); `lv2lint` | PASS; no errors |
+| `make test SAN=1`, `SAN=thread` | PASS |
+| arm64 under QEMU | PASS |
+
+The voice tests still use Elements' panel values (`tests/host.cpp`), so `match_elements`, `pitch` and the rest are unchanged.
+
 ## To do
 
 1. Committed and pushed as `b15b3dc`; the `v0.2.0` tag is not created yet.
 2. Done: Peepo pins `b15b3dc` (uncommitted in Peepo). If a `v0.2.0` tag lands on another commit, move the pin there.
 3. On the Pi (Peepo's roadmap, Chamber section): the build step, `make test-timing` (Strings, then Ominous), `tools/pi/measure-effect.py` alone and in a typical patch for 30 minutes, with and without the Ominous voice; JACK xruns, DSP load and RSS into Peepo's `docs/evidence/`. Unhide `ominous` in the overlay only if it fits.
 4. Pi catalogue exported; `docs/33-module-list.md` regenerated with `tools/document-catalogue.py`.
-5. Listening with a guitar on the Pi: Damping (0.25 rings briefly; 0.7 rings on), Strike in level, then `v0.2.x` tags of tuned defaults.
+5. Done: listened to with a guitar on the Pi; defaults tuned in `v0.2.1` (above). Tag `v0.2.1` and move Peepo's pin to it; then install it on the Pi.

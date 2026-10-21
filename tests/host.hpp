@@ -46,6 +46,8 @@ public:
     float& control(chamber::Port port) { return controls_[static_cast<uint32_t>(port)]; }
     float& signal(chamber::Port port, uint32_t i) { return buffers_[static_cast<uint32_t>(port)][i]; }
     void activate();
+    // The Turtle defaults instead of Elements' panel values (host.cpp).
+    void plugin_defaults();
 
     // Called for every frame of a period before it runs, to write audio and
     // CV inputs (and controls, which then hold for the whole period).

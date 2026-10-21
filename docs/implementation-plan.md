@@ -86,11 +86,11 @@ Indices were assigned in milestone 0 in this order, 0 to 52; `src/ports.hpp` is 
 
 Settled in milestone 0 (21 October 2026):
 
-- `coarse` is an integer, 0 to 60 semitones, default 30: the hardware's 5-octave quantized knob (`LAW_QUANTIZED_NOTE`). The note is `coarse + 19 + fine + 12 * V/oct volts`, as `CvScaler::Read`.
+- `coarse` is an integer, 0 to 60 semitones, default 33 (E; 30 until v0.2.1): the hardware's 5-octave quantized knob (`LAW_QUANTIZED_NOTE`). The note is `coarse + 19 + fine + 12 * V/oct volts`, as `CvScaler::Read`.
 - Bipolar controls (`fine`, `fm_amount`, the `*_amount` attenuverters) are knob positions, -1 to 1; the hardware's laws (`x * |x| * 3.3`, quartic for FM) are applied inside, so they feel like the panel.
 - `blow_meta` and `strike_meta` are named "Blow flow" and "Strike mallet", the panel's words for them.
 - Input levels are -24 to +24 dB, default 0 (**tune** with a guitar in milestone 2).
-- Unipolar defaults are `Part::Init`'s values (contour 1, strike 0.8, geometry 0.2, damping 0.25, position 0.3, space 0.5); **tune** in milestone 3.
+- Unipolar defaults were `Part::Init`'s values (contour 1, strike 0.8, geometry 0.2, damping 0.25, position 0.3, space 0.5) until v0.2.1. **Tuned in milestone 3** (21 October 2026, after the user's guitar test on the Pi): a new Chamber is the "Bells" voice the user chose, a guitar effect with every exciter off: strike level 0, geometry 0.72, brightness 0.68, damping 0.82, space 0.88, coarse 33 (E), Strike in level -9 dB. The tests still run on `Part::Init`'s values (`tests/host.cpp`); `ttl_check` holds the Turtle, the C++ fallbacks and the test host's `plugin_defaults()` together, and the `defaults` test checks what a new Chamber does.
 
 ## 4. The glue
 
@@ -142,7 +142,7 @@ Checked in milestone 2 (21 October 2026): neither resets anything. Each only cho
 
 | Test | Check |
 | --- | --- |
-| `ttl_check` | every port matches `ports.hpp`; names ASCII <= 16 characters |
+| `ttl_check` | every port matches `ports.hpp`; names ASCII <= 16 characters; the plugin is a generator, not an instrument; every control's Turtle default equals its C++ fallback and the test host's `plugin_defaults()` |
 | `scaffold` | descriptor, rates, unconnected ports, Play and Gate strike a note, instances alone/interleaved/threaded keep their own sequence, `activate` restarts, models differ, non-finite input |
 | `slicing` | same output for random host slice lengths |
 | `match_elements` | at a 32 kHz host rate (no resampling), output matches the vendored `Part` driven directly, bit for bit |
@@ -152,6 +152,7 @@ Checked in milestone 2 (21 October 2026): neither resets anything. Each only cho
 | `controls` | each knob and CV changes the matching `Patch` field and nothing else |
 | `external_input` | guitar-like input at Strike in, exciter levels 0, no gate: each model rings at the resonator's note after the pluck has died, 20 dB over the guitar's notes; silent with no input; Blow in silent without a gate and heard with one; `-12 dB` input level gives 12 dB less output (within 0.5 dB; the noise gate takes the rest) |
 | `switches` | model and Ominous changes while a note rings: no click (the largest second difference after the change at most twice that of the steady sound on either side); the new voice plays its next note |
+| `defaults` | a new Chamber (the Turtle defaults): silent alone; Play and a gate alone stay silent; guitar E notes into its E bell peak below 1.0 (measured 0.82) and it still rings 0.5 to 1.5 s after the guitar is muted |
 | `nonfinite` | NaN input: output finite, recovers |
 | `rt_timing` | `make test-timing`: 60 simulated seconds at 48 kHz, worst case (Strings, full reverb, every exciter, moving Geometry), then the same with the Ominous voice: mean, 99.9th percentile and worst `run()` time per period. Informative only off the Pi |
 | `render` | `tools/render` writes a WAV (smoke-tested by `make test`) |

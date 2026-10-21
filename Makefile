@@ -93,7 +93,7 @@ test: all $(BUILD_DIR)/test_scaffold $(BUILD_DIR)/test_match $(BUILD_DIR)/test_r
 	$(BUILD_DIR)/test_match $(BUNDLE)/chamber.so
 	$(BUILD_DIR)/test_resampler
 	$(BUILD_DIR)/test_voice $(BUNDLE)/chamber.so
-	$(BUILD_DIR)/render $(BUNDLE)/chamber.so $(BUILD_DIR)/render-check.wav --seconds 1 model=1
+	$(BUILD_DIR)/render $(BUNDLE)/chamber.so $(BUILD_DIR)/render-check.wav --seconds 1 model=1 strike_level=0.8
 
 test-timing: all $(BUILD_DIR)/test_scaffold
 	$(BUILD_DIR)/test_scaffold $(BUNDLE)/chamber.so --timing

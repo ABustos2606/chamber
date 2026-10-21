@@ -62,7 +62,7 @@ def check(bundle):
     require(LV2.hardRTCapable in set(graph.objects(PLUGIN, LV2.optionalFeature)), "hardRTCapable")
     require(graph.value(PLUGIN, LV2.minorVersion) is not None and graph.value(PLUGIN, LV2.microVersion) is not None, "version")
 
-    actual, symbols = {}, set()
+    actual, symbols, defaults = {}, set(), {}
     for port in graph.objects(PLUGIN, LV2.port):
         index, symbol, name = int(graph.value(port, LV2["index"])), str(graph.value(port, LV2.symbol)), str(graph.value(port, LV2.name))
         require(index not in actual and symbol not in symbols, f"duplicate port {symbol}")
@@ -83,6 +83,8 @@ def check(bundle):
             if LV2.InputPort in types:
                 default = graph.value(port, LV2.default)
                 require(default is not None and float(lo) <= float(default) <= float(hi), f"{symbol}: default")
+                if LV2.ControlPort in types:
+                    defaults[symbol] = float(default)
         props = set(graph.objects(port, LV2.portProperty))
         if LV2.enumeration in props:
             points = list(graph.objects(port, LV2.scalePoint))
@@ -102,7 +104,35 @@ def check(bundle):
         if symbol.endswith("_level") and symbol.startswith(("blow_in", "strike_in")) or symbol == "output":
             require(graph.value(port, UNITS.unit) == UNITS.db, f"{symbol}: dB")
     require(actual == expected, f"ports differ from Port: {actual}")
-    print(f"PASS ttl_check: {COUNT} ports match ports.hpp, names, bounds, license and bundle")
+    check_defaults(defaults)
+    print(f"PASS ttl_check: {COUNT} ports match ports.hpp, names, bounds, defaults, license and bundle")
+
+
+def check_defaults(defaults):
+    """The Turtle defaults, the C++ fallbacks for an unconnected control, and
+    the test host's Elements panel values plus plugin_defaults() agree."""
+    def same(a, b):
+        return abs(a - b) < 1e-6
+    controls = (ROOT / "src/controls.cpp").read_text(encoding="utf-8")
+    glue = (ROOT / "src/chamber.cpp").read_text(encoding="utf-8")
+    fallbacks = {s: float(v) for s, v in re.findall(r"\{Port::(\w+),\s*\w+,\s*(-?[0-9.]+)f\}", controls)}
+    fallbacks.update({s: float(v) for s, v in re.findall(r"value\(ports, Port::(\w+), (-?[0-9.]+)f", controls)})
+    fallbacks.update({s: float(v) for s, v in re.findall(r"control\(Port::(\w+), (-?[0-9.]+),", glue)})
+    require(len(fallbacks) >= 30, "defaults: C++ fallbacks not found")
+    for symbol, value in fallbacks.items():
+        require(symbol in defaults and same(defaults[symbol], value),
+                f"defaults: {symbol} falls back to {value}, the Turtle says {defaults.get(symbol)}")
+    host = (ROOT / "tests/host.cpp").read_text(encoding="utf-8")
+    def block(name):
+        body = re.search(rf"// {name}-begin(.*?)// {name}-end", host, re.S)
+        require(body is not None, f"defaults: host.cpp {name} block")
+        return {s: float(v) for s, v in re.findall(r"control\(Port::(\w+)\) = (-?[0-9.]+)f;", body[1])}
+    host_values = dict.fromkeys(defaults, 0.0)
+    host_values.update(block("elements-panel"))
+    host_values.update(block("plugin-defaults"))
+    for symbol, value in defaults.items():
+        require(same(host_values[symbol], value),
+                f"defaults: the test host's plugin_defaults() gives {symbol} {host_values[symbol]}, the Turtle says {value}")
 
 
 if __name__ == "__main__":

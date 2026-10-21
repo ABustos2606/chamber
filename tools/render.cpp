@@ -10,7 +10,9 @@
 //
 // --gate 2,0.5 holds the gate for 0.5 s every 2 s (default: one 0.5 s note
 // at the start; --gate 0 for none). Controls are set by port symbol; a CV
-// port given a value holds it, e.g. voct_cv=0.2.
+// port given a value holds it, e.g. voct_cv=0.2. Controls start at the
+// plugin's defaults, as a newly added Chamber: every exciter is off, so a
+// gate alone is silent until strike_level, bow_level or blow_level is raised.
 #include "../tests/host.hpp"
 
 #include <algorithm>
@@ -160,6 +162,7 @@ int main(int argc, char** argv)
 
         test::Library library(argv[1]);
         test::Instance instance(library.descriptor, rate, 128);
+        instance.plugin_defaults();
         std::vector<std::pair<uint32_t, float>> held_cvs;
         for (const auto& [index, value] : settings) {
             if (chamber::is_signal(index)) { held_cvs.emplace_back(index, value); }

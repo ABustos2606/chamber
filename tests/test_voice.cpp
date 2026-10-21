@@ -14,6 +14,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -429,6 +430,49 @@ void test_switches(const LV2_Descriptor* d)
     std::cout << "PASS switches: model and Ominous changes fade, no click\n";
 }
 
+// --- defaults ------------------------------------------------------------------
+
+// A newly added Chamber is a guitar effect (v0.2.0): every exciter is off, so
+// it is silent until something plays it; Play alone stays silent; a guitar at
+// Strike in rings it as a long bell with reverb, without clipping.
+void test_defaults(const LV2_Descriptor* d)
+{
+    auto fresh = [&] {
+        auto instance = std::make_unique<Instance>(d, 48000, 128);
+        instance->plugin_defaults();
+        return instance;
+    };
+    {
+        auto instance = fresh();
+        const auto out = instance->render(48000, [](Instance& in, uint32_t i, uint64_t) {
+            in.control(Port::play) = 1;
+            in.signal(Port::gate_cv, i) = 1;
+        });
+        require(rms(out, 0, out.size()) < 1e-6, "defaults: Play and a gate alone are silent");
+    }
+    auto instance = fresh();
+    // The loudest case: the notes the bell is tuned to (E, Coarse 33), E2 then
+    // E3, each sustained at a guitar's level (13 harmonics, peaks about 0.5,
+    // fading), muted at 1.5 s; then the ring.
+    const auto out = instance->render(48000 * 3, [](Instance& in, uint32_t i, uint64_t frame) {
+        const double t = frame / 48000.0;
+        double y = 0;
+        for (const auto& [start, f] : {std::pair{0.0, 82.41}, std::pair{0.6, 164.81}}) {
+            const double u = t - start;
+            if (u < 0 || t >= 1.5) { continue; }
+            for (int h = 1; h <= 13; ++h) { y += 0.25 * std::exp(-3 * u) * std::sin(2 * M_PI * f * h * u + h) / h; }
+        }
+        in.signal(Port::strike_in, i) = static_cast<float>(y);
+    });
+    double peak = 0;
+    for (const auto& s : out) { peak = std::max({peak, static_cast<double>(std::fabs(s.l)), static_cast<double>(std::fabs(s.r))}); }
+    const double ring = rms(out, 48000 * 2, 48000 * 3);
+    std::printf("defaults: guitar E notes into the E bell peak at %.2f; 0.5 to 1.5 s after muting it rings at %.1f dBFS\n", peak, 20 * std::log10(ring));
+    require(peak < 1.0, "defaults: a guitar at Strike in does not clip");
+    require(ring > 1e-3, "defaults: the bell still rings after the guitar is muted");
+    std::cout << "PASS defaults: silent alone, Play alone silent, a guitar rings a long bell\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -441,6 +485,7 @@ int main(int argc, char** argv)
         test_rate_equivalence(library.descriptor);
         test_external_input(library.descriptor);
         test_switches(library.descriptor);
+        test_defaults(library.descriptor);
     } catch (const std::exception& e) {
         std::cerr << "FAIL voice: " << e.what() << '\n';
         return 1;

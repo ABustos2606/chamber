@@ -32,12 +32,19 @@ Instance::Instance(const LV2_Descriptor* d, double sample_rate, uint32_t size)
     handle = d->instantiate(d, rate, ".", features);
     require(handle, "instantiate at " + std::to_string(rate) + " Hz");
     for (auto& buffer : buffers_) { buffer.assign(size + 1, 0.0f); }
-    // The Turtle defaults.
+    // Elements' panel values (Part::Init), which the voice tests are written
+    // against; every other control is 0. plugin_defaults() moves them to the
+    // Turtle defaults (tests/ttl_check.py checks the two lists together).
+    // One assignment per line: ttl_check reads them.
     using chamber::Port;
+    // elements-panel-begin
     control(Port::contour) = 1.0f;
-    control(Port::bow_timbre) = control(Port::blow_meta) = control(Port::blow_timbre) = 0.5f;
+    control(Port::bow_timbre) = 0.5f;
+    control(Port::blow_meta) = 0.5f;
+    control(Port::blow_timbre) = 0.5f;
     control(Port::strike_level) = 0.8f;
-    control(Port::strike_meta) = control(Port::strike_timbre) = 0.5f;
+    control(Port::strike_meta) = 0.5f;
+    control(Port::strike_timbre) = 0.5f;
     control(Port::geometry) = 0.2f;
     control(Port::brightness) = 0.5f;
     control(Port::damping) = 0.25f;
@@ -45,7 +52,24 @@ Instance::Instance(const LV2_Descriptor* d, double sample_rate, uint32_t size)
     control(Port::coarse) = 30.0f;
     control(Port::space) = 0.5f;
     control(Port::strength) = 0.5f;
+    // elements-panel-end
     activate();
+}
+
+// What a newly added Chamber starts with since v0.2.0: a long bell with
+// reverb that a guitar at Strike in plays, every exciter off.
+void Instance::plugin_defaults()
+{
+    using chamber::Port;
+    // plugin-defaults-begin
+    control(Port::strike_level) = 0.0f;
+    control(Port::coarse) = 33.0f;
+    control(Port::geometry) = 0.72f;
+    control(Port::brightness) = 0.68f;
+    control(Port::damping) = 0.82f;
+    control(Port::space) = 0.88f;
+    control(Port::strike_in_level) = -9.0f;
+    // plugin-defaults-end
 }
 
 Instance::~Instance()

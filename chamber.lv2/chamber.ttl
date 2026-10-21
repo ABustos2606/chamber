@@ -14,9 +14,9 @@
     doap:maintainer [ foaf:name "Alejandro Bustos" ; foaf:homepage <https://github.com/ABustos2606> ] ;
     doap:homepage <https://github.com/ABustos2606/chamber> ;
     doap:description "Made from the open-source code of Elements, a eurorack module by Emilie Gillet (MIT license)." ;
-    rdfs:comment "Modal synthesis voice. Bow, blow and strike exciters drive a resonator, followed by a reverb. Play or a gate starts a note. Audio at Strike in, such as a guitar, makes the resonator ring. Blow in is heard while Play or a gate is held." ;
+    rdfs:comment "Modal synthesis voice. Audio at Strike in, such as a guitar, makes the resonator ring; it starts as a long bell with reverb. Bow, blow and strike exciters, once their levels are raised, play it on Play or a gate. Blow in is heard while Play or a gate is held." ;
     lv2:minorVersion 2 ;
-    lv2:microVersion 0 ;
+    lv2:microVersion 1 ;
     lv2:optionalFeature lv2:hardRTCapable ;
     lv2:port
     [
@@ -104,7 +104,7 @@
         lv2:name "Strike level" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
-        lv2:default 0.8
+        lv2:default 0.0
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
@@ -131,7 +131,7 @@
         lv2:name "Geometry" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
-        lv2:default 0.2
+        lv2:default 0.72
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
@@ -140,7 +140,7 @@
         lv2:name "Brightness" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
-        lv2:default 0.5
+        lv2:default 0.68
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
@@ -149,7 +149,7 @@
         lv2:name "Damping" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
-        lv2:default 0.25
+        lv2:default 0.82
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
@@ -180,7 +180,7 @@
         lv2:name "Coarse" ;
         lv2:minimum 0 ;
         lv2:maximum 60 ;
-        lv2:default 30 ;
+        lv2:default 33 ;
         lv2:portProperty lv2:integer ;
         units:unit units:semitone12TET
     ],
@@ -209,7 +209,7 @@
         lv2:name "Space" ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
-        lv2:default 0.5
+        lv2:default 0.88
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
@@ -247,7 +247,7 @@
         lv2:name "Strike in level" ;
         lv2:minimum -24 ;
         lv2:maximum 24 ;
-        lv2:default 0 ;
+        lv2:default -9 ;
         units:unit units:db
     ],
     [
