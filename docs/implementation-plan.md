@@ -102,7 +102,17 @@ Allocate the reverb buffer (32,768 `uint16_t`, as `elements.cc`), call `Part::In
 
 ### 4.2 Rate and blocks
 
-Host rate -> 32 kHz: the two audio inputs are downsampled, `Part::Process` runs on 16-frame blocks (`kMaxBlockSize`) at 32 kHz, and the two outputs are upsampled back. At 48 kHz that is 3:2 polyphase; other host rates use a general windowed-sinc resampler. Latency is reported through an `lv2:reportsLatency` output port so hosts can compensate. Filter length and passband **tune** (against CPU and aliasing).
+Host rate -> 32 kHz: the two audio inputs are downsampled, `Part::Process` runs on 16-frame blocks (`kMaxBlockSize`) at 32 kHz, and the two outputs are upsampled back. Latency is reported through an `lv2:reportsLatency` output port so hosts can compensate.
+
+Built in milestone 1 (21 October 2026), `src/resampler.hpp` and `src/rate_bridge.hpp`:
+
+- One polyphase windowed-sinc design serves every host rate. The ratio is kept as an exact integer fraction, so the clocks never drift. 192 phases: 48 and 96 kHz land on exact rows; other rates interpolate linearly between rows.
+- Kaiser window for 80 dB; transition 14 to 18 kHz on the 32 kHz side. Measured: passband flat within 0.002 dB to 14 kHz, aliases and images at -83 dB, 19-21 kHz inputs at -86 dB.
+- Delays: 31 host frames down, 22 voice samples up (rounded up from 21 so the total is whole), plus the 16-sample staging. **Latency at 48 kHz: 88 frames, 1.83 ms**, not the spec's guess of about 1 ms. 44.1 kHz: 79 (78.99, rounded); 96 kHz: 172. At 32 kHz both resamplers are bypassed: 16.
+- Only audio inputs pass the downsampler. A note started by Play or a gate leaves after the upsampler and staging alone (57 frames at 48 kHz), 31 frames before the audio inputs' path would. Accepted: 0.65 ms.
+- At 48 kHz, Chamber's output with silent inputs is Elements' own 32 kHz output through the upsampler (`rate equivalence` test): pitch, envelopes and reverb are unchanged.
+
+Resampling was chosen on 20 October 2026. The alternative in the spec (tables regenerated at 48 kHz) would change only this section, and only as a later optimisation.
 
 Resampling was chosen on 20 October 2026. The alternative in the spec (tables regenerated at 48 kHz) would change only this section, and only as a later optimisation.
 
@@ -136,12 +146,14 @@ It runs once per 16-frame block, as `Read` runs once per codec block, with the s
 | `scaffold` | descriptor, rates, unconnected ports, Play and Gate strike a note, instances alone/interleaved/threaded keep their own sequence, `activate` restarts, models differ, non-finite input |
 | `slicing` | same output for random host slice lengths |
 | `match_elements` | at a 32 kHz host rate (no resampling), output matches the vendored `Part` driven directly, bit for bit |
-| `resampler` | 48 kHz: a sine sweep keeps its level within **tune** dB to 14 kHz; aliasing below **tune** dB; latency equals the reported value |
-| `pitch` | V/oct 0.2 per octave: measured fundamental within 1 cent over 5 octaves |
+| `resampler` | 48, 44.1 and 96 kHz, through the plugin's own bridge with an identity voice: level within 0.05 dB to 14 kHz; everything but the input sine below -70 dB; 19 and 21 kHz below -70 dB; latency equals the reported value (exact at 48 and 96 kHz, within half a frame at 44.1 kHz) |
+| `pitch` | the note handed to Elements moves exactly 12 semitones per 0.2 of V/oct; the modal voice's measured fundamental stays within 5 cents of that note over 5 octaves. The first draft asked for 1 cent, but Elements' own 32 kHz output is up to 2.8 cents off its note (its resonator's fast frequency approximations, kept as written), and Chamber adds nothing to that: see `rate equivalence` |
+| `rate equivalence` | at 48 kHz, each model's output is the 32 kHz output through the same upsampler, within 1e-6 of peak |
 | `controls` | each knob and CV changes the matching `Patch` field and nothing else |
 | `external_input` | guitar-like input at Strike in, exciter levels 0: output rings at the resonator's pitch |
 | `nonfinite` | NaN input: output finite, recovers |
-| `rt_timing` | 10 simulated minutes of random controls: worst and 99.9th-percentile `run()` time |
+| `rt_timing` | `make test-timing`: 60 simulated seconds at 48 kHz, worst case (Strings, full reverb, every exciter, moving Geometry): mean, 99.9th percentile and worst `run()` time per period. Informative only off the Pi |
+| `render` | `tools/render` writes a WAV (smoke-tested by `make test`) |
 
 ### 6.2 Desktop hosts
 

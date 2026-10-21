@@ -54,7 +54,8 @@ Chamber* Chamber::create(double rate) noexcept
     // zero-initialised global. activate() builds it in zeroed memory.
     void* memory = std::calloc(1, sizeof(elements::Part));
     chamber->reverb_ = new (std::nothrow) uint16_t[kReverbSize];
-    if (!memory || !chamber->reverb_) {
+    const bool bridge = chamber->bridge_.configure(static_cast<uint32_t>(std::llround(rate)));
+    if (!memory || !chamber->reverb_ || !bridge) {
         std::free(memory);
         delete chamber;
         return nullptr;
@@ -94,7 +95,7 @@ void Chamber::activate() noexcept
     part_->Seed(seed, 3);
     part_->set_easter_egg(false);
     controls_.reset();
-    block_.reset();
+    bridge_.reset();
     random_state_ = kRandomSeed;
     model_ = ominous_ = -1;
     blow_in_follower_ = strike_in_follower_ = 0;
@@ -131,30 +132,28 @@ void Chamber::run(uint32_t frames) noexcept
         blow_in_gain_ += smoothing_ * (blow_in_target - blow_in_gain_);
         strike_in_gain_ += smoothing_ * (strike_in_target - strike_in_gain_);
         output_gain_ += smoothing_ * (output_target - output_gain_);
-        // Milestone 0: the voice runs at the host rate; the 32 kHz resampler
-        // comes in milestone 1. Input levels are clipped at the hardware
-        // codec's full scale.
-        const float blow = std::clamp(input(Port::blow_in, i) * blow_in_gain_, -1.0f, 1.0f);
-        const float strike = std::clamp(input(Port::strike_in, i) * strike_in_gain_, -1.0f, 1.0f);
-        const uint32_t p = block_.position;
-        block_.blow[p] = gate_input(blow, blow_in_follower_);
-        block_.strike[p] = gate_input(strike, strike_in_follower_);
-        // elements.cc writes main to the right output and aux to the left.
-        const float l = block_.aux[p] * output_gain_;
-        const float r = block_.main[p] * output_gain_;
-        if (out_l) { out_l[i] = l; }
-        if (out_r) { out_r[i] = r; }
-        if (++block_.position == BlockBuffer::kSize) {
-            process_block(i);
-            block_.position = 0;
-        }
+        // Input levels are clipped at the hardware codec's full scale.
+        const float in[2] = {
+            std::clamp(input(Port::blow_in, i) * blow_in_gain_, -1.0f, 1.0f),
+            std::clamp(input(Port::strike_in, i) * strike_in_gain_, -1.0f, 1.0f),
+        };
+        float out[2];
+        bridge_.frame(in, out,
+            [this](float* voice_in) {
+                voice_in[0] = gate_input(voice_in[0], blow_in_follower_);
+                voice_in[1] = gate_input(voice_in[1], strike_in_follower_);
+            },
+            // A block completed in host frame i uses that frame's CVs.
+            [this, i](BlockBuffer& block) { process_block(block, i); });
+        if (out_l) { out_l[i] = out[0] * output_gain_; }
+        if (out_r) { out_r[i] = out[1] * output_gain_; }
     }
     if (float* latency = ports_[static_cast<uint32_t>(Port::latency)]) {
-        *latency = static_cast<float>(BlockBuffer::kSize);
+        *latency = static_cast<float>(bridge_.latency());
     }
 }
 
-void Chamber::process_block(uint32_t frame) noexcept
+void Chamber::process_block(BlockBuffer& block, uint32_t frame) noexcept
 {
     const int model = static_cast<int>(std::lround(control(Port::model, 0, 0, 2)));
     if (model != model_) {
@@ -175,7 +174,7 @@ void Chamber::process_block(uint32_t frame) noexcept
     // stmlib::Random is one state per thread (third_party/eurorack/README.md);
     // each instance keeps its own sequence.
     stmlib::Random::Seed(random_state_);
-    part_->Process(state, block_.blow, block_.strike, block_.main, block_.aux, BlockBuffer::kSize);
+    part_->Process(state, block.blow, block.strike, block.main, block.aux, BlockBuffer::kSize);
     random_state_ = stmlib::Random::state();
 }
 

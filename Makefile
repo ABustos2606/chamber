@@ -43,7 +43,7 @@ COMPILE_FLAGS = $(BASE_FLAGS) $(LV2_CFLAGS) -isystem $(VENDOR) -Wall -Wextra
 VENDOR_FLAGS = $(BASE_FLAGS) -I$(VENDOR) -w
 TEST_LIBS = -ldl -pthread
 
-.PHONY: all install test test-timing test-hosts lint clean
+.PHONY: all install test test-timing test-hosts render lint clean
 all: $(BUNDLE)/chamber.so $(TTL_TARGETS)
 
 $(BUILD_DIR)/obj/%.o: src/%.cpp
@@ -67,16 +67,33 @@ $(BUILD_DIR)/test_scaffold: tests/test_scaffold.cpp tests/host.cpp tests/host.hp
 	@mkdir -p "$(@D)"
 	$(CXX) $(COMPILE_FLAGS) tests/test_scaffold.cpp tests/host.cpp $(LDFLAGS) $(TEST_LIBS) -o $@
 
+$(BUILD_DIR)/test_resampler: tests/test_resampler.cpp src/rate_bridge.hpp src/resampler.hpp src/block_buffer.hpp
+	@mkdir -p "$(@D)"
+	$(CXX) $(COMPILE_FLAGS) tests/test_resampler.cpp $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/test_voice: tests/test_voice.cpp tests/host.cpp tests/host.hpp $(BUILD_DIR)/obj/controls.o
+	@mkdir -p "$(@D)"
+	$(CXX) $(COMPILE_FLAGS) tests/test_voice.cpp tests/host.cpp $(BUILD_DIR)/obj/controls.o $(LDFLAGS) $(TEST_LIBS) -o $@
+
+$(BUILD_DIR)/render: tools/render.cpp tests/host.cpp tests/host.hpp src/ports.hpp
+	@mkdir -p "$(@D)"
+	$(CXX) $(COMPILE_FLAGS) tools/render.cpp tests/host.cpp $(LDFLAGS) $(TEST_LIBS) -o $@
+
+render: all $(BUILD_DIR)/render
+
 # Drives the vendored Part directly, beside the plugin, so it links them too.
 $(BUILD_DIR)/test_match: tests/test_match.cpp tests/host.cpp tests/host.hpp $(BUILD_DIR)/obj/controls.o $(VENDOR_OBJECTS)
 	@mkdir -p "$(@D)"
 	$(CXX) $(COMPILE_FLAGS) tests/test_match.cpp tests/host.cpp $(BUILD_DIR)/obj/controls.o $(VENDOR_OBJECTS) \
 		$(LDFLAGS) $(TEST_LIBS) -o $@
 
-test: all $(BUILD_DIR)/test_scaffold $(BUILD_DIR)/test_match
+test: all $(BUILD_DIR)/test_scaffold $(BUILD_DIR)/test_match $(BUILD_DIR)/test_resampler $(BUILD_DIR)/test_voice $(BUILD_DIR)/render
 	$(PYTHON) tests/ttl_check.py $(BUNDLE)
 	$(BUILD_DIR)/test_scaffold $(BUNDLE)/chamber.so
 	$(BUILD_DIR)/test_match $(BUNDLE)/chamber.so
+	$(BUILD_DIR)/test_resampler
+	$(BUILD_DIR)/test_voice $(BUNDLE)/chamber.so
+	$(BUILD_DIR)/render $(BUNDLE)/chamber.so $(BUILD_DIR)/render-check.wav --seconds 1 model=1
 
 test-timing: all $(BUILD_DIR)/test_scaffold
 	$(BUILD_DIR)/test_scaffold $(BUNDLE)/chamber.so --timing
@@ -97,6 +114,6 @@ lint:
 	else echo 'SKIP lv2lint: not installed (install the bundle with make install first)'; fi
 
 clean:
-	$(RM) -r $(BUILD_DIR)/obj $(BUNDLE) $(BUILD_DIR)/test_scaffold $(BUILD_DIR)/test_match
+	$(RM) -r $(BUILD_DIR)/obj $(BUNDLE) $(BUILD_DIR)/test_scaffold $(BUILD_DIR)/test_match $(BUILD_DIR)/test_resampler $(BUILD_DIR)/test_voice $(BUILD_DIR)/render $(BUILD_DIR)/render-check.wav
 
 -include $(OBJECTS:.o=.d) $(VENDOR_OBJECTS:.o=.d)

@@ -2,9 +2,9 @@
 // Copyright (c) 2026 Alejandro Bustos
 #pragma once
 
-#include "block_buffer.hpp"
 #include "controls.hpp"
 #include "ports.hpp"
+#include "rate_bridge.hpp"
 
 #include <lv2/core/lv2.h>
 
@@ -41,15 +41,15 @@ private:
     explicit Chamber(double rate) noexcept;
     float control(Port port, float fallback, float minimum, float maximum) const noexcept;
     float input(Port port, uint32_t frame) const noexcept;
-    void process_block(uint32_t frame) noexcept;
+    void process_block(BlockBuffer& block, uint32_t frame) noexcept;
 
     double rate_;
+    RateBridge bridge_;
     float smoothing_;
     PortArray ports_{};
     elements::Part* part_ = nullptr;
     uint16_t* reverb_ = nullptr;
     Controls controls_;
-    BlockBuffer block_{};
     uint32_t random_state_ = kRandomSeed;
     int model_ = -1;
     int ominous_ = -1;
